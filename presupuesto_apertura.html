@@ -205,9 +205,47 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
 .ver-card.frozen{border-color:var(--green)}
 .delta-pos{color:var(--green);font-weight:700}.delta-neg{color:var(--red);font-weight:700}.delta-neu{color:var(--muted)}
 .delta-row-chg td{background:#FFFBF0!important}
+
+/* ===== LOGIN ===== */
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#003884 0%,#0052CC 60%,#0065FF 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
+#login-screen.hidden{display:none!important}
+.login-box{background:#fff;border-radius:14px;padding:38px 40px;width:100%;max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo .lbrand{font-size:22px;font-weight:900;color:var(--blue)}
+.login-logo .lsub{font-size:12px;color:var(--muted);margin-top:3px}
+.login-title{font-size:18px;font-weight:800;margin-bottom:6px;color:var(--text)}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+.login-err{background:#FFEBE6;color:var(--red);border-radius:6px;padding:9px 12px;font-size:13px;font-weight:600;margin-bottom:14px;display:none}
+.login-err.show{display:block}
+.login-inp{width:100%;padding:10px 13px;border:2px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;font-family:inherit;margin-bottom:12px;transition:border-color .15s}
+.login-inp:focus{border-color:var(--blue)}
+.login-btn{width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-top:4px}
+.login-btn:hover{background:var(--blue-dk)}
+.login-hint{font-size:11px;color:var(--muted);margin-top:16px;text-align:center;line-height:1.7}
 </style>
 </head>
 <body>
+
+<!-- ===== PANTALLA DE LOGIN ===== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="lbrand">&#128200; BudgetApp</div>
+      <div class="lsub">Sistema de Gestión Presupuestaria</div>
+    </div>
+    <div class="login-title">Iniciar sesión</div>
+    <div class="login-sub">Ingresa tus credenciales para continuar</div>
+    <div class="login-err" id="login-err">Usuario o contraseña incorrectos.</div>
+    <input class="login-inp" id="login-user" type="text" placeholder="Usuario" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    <input class="login-inp" id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-hint">
+      <strong>Demo:</strong> jvargas / 1234 &nbsp;|&nbsp; mlopez / 1234<br>
+      pvega / 1234 &nbsp;|&nbsp; rsilva / 1234
+    </div>
+  </div>
+</div>
+
 <div class="layout">
 
 <aside class="sidebar">
@@ -668,6 +706,7 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
         <div class="fld"><label>Usuario *</label><input type="text" id="mu-user" placeholder="Ej. jperez"></div>
       </div>
       <div class="fld"><label>Email</label><input type="email" id="mu-email" placeholder="jperez@veris.com.ec"></div>
+      <div class="fld" id="mu-pass-wrap"><label id="mu-pass-lbl">Contraseña *</label><input type="password" id="mu-pass" placeholder="Contraseña de acceso"><div class="fld-hint" id="mu-pass-hint">Mínimo 4 caracteres.</div></div>
       <div class="fld"><label>Rol *</label>
         <select id="mu-rol" onchange="updModalUsuarioRol()">
           <option value="dept_user">Analista / Ingresador</option>
@@ -2234,15 +2273,15 @@ const ROLES_NOM = {budget_manager:'Jefe de Presupuesto', dept_head:'Jefe de Depa
 const ROLES_CHIP = {budget_manager:'rol-bm', dept_head:'rol-jf', dept_user:'rol-du'};
 
 let usuarios = [
-  {id:1, nom:'Jonathan Vargas', user:'jvargas', rol:'budget_manager', email:'jonathan.vargas@veris.com.ec'},
-  {id:2, nom:'Maria Lopez',     user:'mlopez',  rol:'dept_head',      areaId:1, email:'mlopez@veris.com.ec'},
-  {id:3, nom:'Carlos Perez',    user:'cperez',  rol:'dept_head',      areaId:2},
-  {id:4, nom:'Ana Torres',      user:'atorres', rol:'dept_head',      areaId:3},
-  {id:5, nom:'Luis Mora',       user:'lmora',   rol:'dept_head',      areaId:4},
-  {id:6, nom:'Sofia Ruiz',      user:'sruiz',   rol:'dept_head',      areaId:5},
-  {id:7, nom:'Pedro Castro',    user:'pcastro', rol:'dept_head',      areaId:6},
-  {id:8, nom:'Patricia Vega',   user:'pvega',   rol:'dept_user'},
-  {id:9, nom:'Roberto Silva',   user:'rsilva',  rol:'dept_user'},
+  {id:1, nom:'Jonathan Vargas', user:'jvargas', pass:'1234', rol:'budget_manager', email:'jonathan.vargas@veris.com.ec'},
+  {id:2, nom:'Maria Lopez',     user:'mlopez',  pass:'1234', rol:'dept_head',      areaId:1, email:'mlopez@veris.com.ec'},
+  {id:3, nom:'Carlos Perez',    user:'cperez',  pass:'1234', rol:'dept_head',      areaId:2},
+  {id:4, nom:'Ana Torres',      user:'atorres', pass:'1234', rol:'dept_head',      areaId:3},
+  {id:5, nom:'Luis Mora',       user:'lmora',   pass:'1234', rol:'dept_head',      areaId:4},
+  {id:6, nom:'Sofia Ruiz',      user:'sruiz',   pass:'1234', rol:'dept_head',      areaId:5},
+  {id:7, nom:'Pedro Castro',    user:'pcastro', pass:'1234', rol:'dept_head',      areaId:6},
+  {id:8, nom:'Patricia Vega',   user:'pvega',   pass:'1234', rol:'dept_user'},
+  {id:9, nom:'Roberto Silva',   user:'rsilva',  pass:'1234', rol:'dept_user'},
 ];
 let sigIdUser = 10;
 
@@ -2258,8 +2297,8 @@ let permisos = {
 // historial de aprobaciones (audit trail)
 let histApro = [];
 let sigIdHist = 1;
-// sesión simulada — usuario activo
-let sesion = {userId:1};
+// sesión activa — null hasta que el usuario haga login
+let sesion = {userId:null};
 // contexto de rechazo pendiente
 let rejCtx = {nivel:0};
 
@@ -2525,6 +2564,9 @@ function openModalUsuario(id){
   document.getElementById('mu-nom').value=uu?uu.nom:'';
   document.getElementById('mu-user').value=uu?uu.user:'';
   document.getElementById('mu-email').value=uu?uu.email||'':'';
+  document.getElementById('mu-pass').value='';
+  document.getElementById('mu-pass-lbl').textContent=id?'Nueva contraseña (dejar vacío para no cambiar)':'Contraseña *';
+  document.getElementById('mu-pass-hint').textContent=id?'Dejar en blanco para mantener la contraseña actual.':'Mínimo 4 caracteres.';
   document.getElementById('mu-rol').value=uu?uu.rol:'dept_user';
   document.getElementById('mu-area').innerHTML=areas.map(a=>`<option value="${a.id}" ${uu&&uu.areaId===a.id?'selected':''}>${a.nom}</option>`).join('');
   document.getElementById('modal-usuario').dataset.eid=id||'';
@@ -2543,14 +2585,17 @@ function guardarUsuario(){
   const nom=document.getElementById('mu-nom').value.trim();
   const user=document.getElementById('mu-user').value.trim().toLowerCase();
   const email=document.getElementById('mu-email').value.trim();
+  const pass=document.getElementById('mu-pass').value.trim();
   const rol=document.getElementById('mu-rol').value;
   if(!nom||!user){alert('Completa nombre y usuario.');return;}
   const eid=parseInt(document.getElementById('modal-usuario').dataset.eid||'0');
   if(!eid&&usuarios.find(u=>u.user===user)){alert('El usuario ya existe.');return;}
+  if(!eid&&pass.length<4){alert('La contraseña debe tener al menos 4 caracteres.');return;}
   const d={nom,user,email,rol};
+  if(pass.length>=4)d.pass=pass;
   if(rol==='dept_head')d.areaId=parseInt(document.getElementById('mu-area').value);
   if(eid){const uu=usuarios.find(x=>x.id===eid);if(uu)Object.assign(uu,d);}
-  else usuarios.push({id:sigIdUser++,...d});
+  else usuarios.push({id:sigIdUser++,pass:'1234',...d});
   cm('modal-usuario'); rUsuarios(); renderSidebarUser(); toast('Usuario guardado');
 }
 function delUsuario(id){
@@ -2595,6 +2640,28 @@ function guardarAsigPerm(){
   cm('modal-asig-perm'); rUsuarios(); toast('Permisos actualizados');
 }
 
+// ============= LOGIN / LOGOUT =============
+function doLogin(){
+  const uInput=(document.getElementById('login-user').value||'').trim().toLowerCase();
+  const pInput=(document.getElementById('login-pass').value||'').trim();
+  const err=document.getElementById('login-err');
+  const u=usuarios.find(x=>x.user.toLowerCase()===uInput && x.pass===pInput);
+  if(!u){err.classList.add('show'); document.getElementById('login-pass').value=''; return;}
+  err.classList.remove('show');
+  sesion.userId=u.id;
+  document.getElementById('login-screen').classList.add('hidden');
+  renderSidebarUser();
+  actualizarNav();
+  nav('dash');
+}
+function doLogout(){
+  sesion.userId=null;
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-err').classList.remove('show');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
 // ============= SIDEBAR USUARIO =============
 function renderSidebarUser(){
   const box=document.getElementById('sidebar-usr-box'); if(!box)return;
@@ -2604,16 +2671,7 @@ function renderSidebarUser(){
   const rolNom=ROLES_NOM[u.rol]||u.rol;
   box.innerHTML=`<div class="su-nom">${u.nom}</div>
     <span class="rol-chip ${chip}">${rolNom}</span>
-    <select class="su-sel" onchange="cambiarUsuario(this.value)">
-      ${usuarios.map(uu=>`<option value="${uu.id}" ${uu.id===sesion.userId?'selected':''}>${uu.nom}</option>`).join('')}
-    </select>`;
-}
-function cambiarUsuario(uid){
-  sesion.userId=parseInt(uid);
-  renderSidebarUser();
-  actualizarNav();
-  nav('dash');
-  toast('Sesión cambiada: '+getCurUser().nom);
+    <button onclick="doLogout()" style="width:100%;margin-top:10px;padding:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">&#x23CF; Cerrar sesión</button>`;
 }
 function actualizarNav(){
   const u=getCurUser(); if(!u)return;
@@ -2850,9 +2908,8 @@ function exportComparacion(){
 }
 
 // ============= INIT =============
-renderSidebarUser();
-actualizarNav();
-nav('dash');
+// La app arranca mostrando solo el login.
+// El dashboard se carga después de doLogin().
 </script>
 </body>
 </html>
