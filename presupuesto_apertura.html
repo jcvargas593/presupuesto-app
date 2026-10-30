@@ -1,0 +1,2858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Presupuesto</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#0052CC;--blue-dk:#003884;--blue-lt:#E9F2FF;--blue-md:#B3D4FF;
+  --bg:#F4F5F7;--card:#FFFFFF;--text:#172B4D;--muted:#6B778C;--border:#DFE1E6;
+  --green:#36B37E;--yellow:#FFAB00;--red:#DE350B;--purple:#6554C0;--teal:#00B8D9;
+  --radius:8px;--shadow:0 2px 12px rgba(0,0,0,.08)
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:230px;background:var(--blue-dk);flex-shrink:0;display:flex;flex-direction:column}
+.sidebar-logo{padding:18px 20px;background:rgba(0,0,0,.2)}
+.sidebar-logo .brand{font-size:16px;font-weight:800;color:#fff}
+.sidebar-logo .sub{font-size:11px;color:#7AB4FF;margin-top:2px}
+.nav-group{padding:14px 0 4px}
+.nav-label{padding:3px 18px;font-size:10px;font-weight:800;letter-spacing:.8px;color:rgba(255,255,255,.3);text-transform:uppercase}
+.nav-item{padding:8px 18px;font-size:13px;color:rgba(255,255,255,.65);cursor:pointer;display:flex;align-items:center;gap:9px;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:#7AB4FF}
+.nav-item .ico{width:18px;text-align:center;font-size:15px}
+.main{flex:1;padding:26px 30px;overflow-y:auto;min-width:0}
+
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:background .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-dk)}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{background:#2a9165}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#b02b09}
+.btn-ghost{background:#fff;color:var(--text);border:2px solid var(--border)}.btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-xs{padding:3px 9px;font-size:11px}
+
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
+.page-title{font-size:21px;font-weight:700}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px}
+.hdr-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.cards-row{display:flex;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.scard{background:var(--card);border-radius:var(--radius);padding:18px 20px;flex:1;min-width:150px;box-shadow:var(--shadow)}
+.scard .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.scard .val{font-size:26px;font-weight:800;margin-top:5px}
+.scard .hnt{font-size:12px;color:var(--muted);margin-top:3px}
+
+.tw{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+.tbar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.tbar h3{font-size:14px;font-weight:700}
+table.dt{width:100%;border-collapse:collapse}
+table.dt th{padding:9px 13px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);background:#FAFBFC;white-space:nowrap}
+table.dt td{padding:10px 13px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.dt tr:last-child td{border-bottom:none}
+table.dt tr:hover td{background:#FAFBFC}
+
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.b-open{background:#E3FCEF;color:#006644}
+.b-closed{background:#FFEBE6;color:var(--red)}
+.b-sin{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.b-bor{background:#FFF7D6;color:#974F0C}
+.b-env{background:var(--blue-lt);color:var(--blue)}
+.b-apr{background:#E3FCEF;color:#006644}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100}
+.overlay.hidden{display:none}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:540px;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:92vh;overflow-y:auto}
+.modal-xl{max-width:860px}
+.mhdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--card);z-index:1}
+.mhdr h3{font-size:15px;font-weight:700}
+.mx{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1}
+.mbody{padding:20px}
+.mfoot{padding:13px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--card)}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+.fld input,.fld select,.fld textarea{width:100%;padding:8px 11px;border:2px solid var(--border);border-radius:var(--radius);font-size:13px;outline:none;font-family:inherit}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--blue)}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.fld-hint{font-size:11px;color:var(--muted);margin-top:3px}
+
+.tipo-check-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.tipo-check{display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;user-select:none}
+.tipo-check.sel{border-color:var(--blue);background:var(--blue-lt);color:var(--blue)}
+.tipo-check input{display:none}
+
+.pg-container{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.pg-scroll{overflow-x:auto}
+table.pg{width:100%;border-collapse:collapse;min-width:1260px}
+table.pg th{padding:8px 9px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:right;border-bottom:2px solid var(--border);background:#FAFBFC;white-space:nowrap}
+table.pg th.cc{text-align:left;min-width:250px;position:sticky;left:0;background:#FAFBFC;z-index:2}
+table.pg th.cd{text-align:left;min-width:85px;position:sticky;left:250px;background:#FAFBFC;z-index:2}
+table.pg th.ct{background:#EDF2FF;color:var(--blue)}
+table.pg td{padding:4px 6px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.pg td.cc{position:sticky;left:0;background:var(--card);z-index:1;padding:7px 11px;font-size:12px;font-weight:600;min-width:250px}
+table.pg td.cd{position:sticky;left:250px;background:var(--card);z-index:1;padding:7px 9px;font-size:11px;color:var(--muted);font-family:monospace;min-width:85px}
+table.pg tr:hover td{background:#FAFBFC}
+table.pg tr:hover td.cc,table.pg tr:hover td.cd{background:#FAFBFC}
+table.pg tr.gh td{background:#F0F4FF!important;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--blue)}
+table.pg tr.gh td.cc,table.pg tr.gh td.cd{background:#F0F4FF!important}
+table.pg tfoot td{background:#EDF2FF!important;font-weight:700;font-size:12px;border-top:2px solid var(--blue-md)}
+table.pg tfoot td.cc,table.pg tfoot td.cd{background:#EDF2FF!important}
+.ci{width:100%;min-width:65px;padding:4px 6px;border:1.5px solid transparent;border-radius:4px;font-size:12px;text-align:right;background:transparent;outline:none;color:var(--text);transition:border-color .12s,background .12s}
+.ci:hover:not(:disabled){border-color:var(--border);background:#fff}
+.ci:focus{border-color:var(--blue);background:#fff}
+.ci:disabled{color:var(--muted);cursor:not-allowed}
+.cro{font-size:12px;font-weight:700;text-align:right;padding:0 6px;color:var(--blue)}
+
+.ptbar{background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.ptinfo{display:flex;align-items:center;gap:14px;font-size:13px;flex-wrap:wrap}
+.ptacts{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+
+.pcard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;border-left:4px solid var(--border);margin-bottom:14px}
+.pcard.popen{border-left-color:var(--green)}
+.pcard.pcerr{border-left-color:var(--red)}
+.pbar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:5px}
+.pfill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
+
+.tipo-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;border:2px solid var(--border);cursor:pointer;transition:all .2s}
+.tipo-card:hover{border-color:var(--blue);transform:translateY(-2px)}
+.tipo-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px}
+
+.ent-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;border:2px solid var(--border);cursor:pointer;transition:border-color .2s}
+.ent-card:hover{border-color:var(--blue)}
+
+.info-box{background:var(--blue-lt);border-radius:var(--radius);padding:11px 15px;font-size:13px;margin-bottom:16px;color:var(--blue-dk);border-left:3px solid var(--blue)}
+.warn-box{background:#FFF7D6;border-radius:var(--radius);padding:11px 15px;font-size:13px;margin-bottom:16px;color:#974F0C;border-left:3px solid var(--yellow)}
+
+.toast{position:fixed;bottom:22px;right:22px;background:#172B4D;color:#fff;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.hidden{display:none!important}
+.tag{background:var(--bg);color:var(--muted);border:1px solid var(--border);display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px}
+
+/* asignacion modal */
+.chk-row:hover{background:#F4F5F7}
+.asig-cta-hdr{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#EDF2FF;border-radius:6px;margin-bottom:6px;cursor:pointer}
+.asig-cta-hdr label{font-size:12px;font-weight:700;cursor:pointer;flex:1}
+.asig-parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:2px;padding-left:14px;margin-bottom:10px}
+table.pg tr.gst td{background:#F0F8FF!important;font-size:11px;font-weight:700;color:#003884;border-top:1px solid #B3D4FF}
+table.pg tr.gst td.cc{background:#F0F8FF!important;font-style:italic}
+table.pg tr.gst td.cd{background:#F0F8FF!important}
+.mode-btn{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:#fff;color:var(--muted);transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.mode-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.mode-btn.mreal.active{background:var(--green);border-color:var(--green)}
+.ci-real{background:#F0FFF8;border-color:#ABE2C7!important}
+.rep-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+.rep-tab{padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.rep-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.rep-body{display:none}.rep-body.active{display:block}
+.rep-fbar{background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rep-fbar select,.rep-fbar label{font-size:13px}
+.var-pos{color:var(--red);font-weight:700}.var-neg{color:var(--green);font-weight:700}.var-neu{color:var(--muted)}
+.insight-box{background:#F0F8FF;border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;border-left:4px solid var(--blue)}
+.insight-box h4{font-size:13px;font-weight:700;margin-bottom:8px;color:var(--blue-dk)}
+.insight-box ul{padding-left:18px;font-size:13px;line-height:1.8}
+.insight-alerta{background:#FFF0F0;border-left-color:var(--red)}
+.insight-alerta h4{color:var(--red)}
+.repro-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;position:relative}
+.repro-fill{height:100%;background:var(--blue);border-radius:4px}
+.repro-real-fill{position:absolute;top:0;height:100%;background:var(--green);opacity:.75;border-radius:4px}
+.repro-month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.repro-mc{background:#F4F5F7;border-radius:6px;padding:8px 10px;font-size:11px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.repro-mc:hover{border-color:var(--blue)}
+.repro-mc.sel{background:#E9F2FF;border-color:var(--blue)}
+.repro-mc.sel.from{background:#FFF7D6;border-color:var(--yellow)}
+.repro-mc .mc-nom{font-weight:700;font-size:12px;margin-bottom:3px}
+.repro-mc .mc-disp{color:var(--green);font-weight:700}
+.repro-mc .mc-zero{color:var(--muted)}
+.b-rej{background:#FFEBE6;color:var(--red)}
+.sidebar-usr{padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);margin-top:auto}
+.su-nom{font-size:13px;font-weight:700;color:#fff}
+.su-sel{width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 8px;font-size:11px;margin-top:8px;cursor:pointer}
+.su-sel option{background:#003884;color:#fff}
+.rol-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800;letter-spacing:.3px;margin-top:3px}
+.rol-bm{background:rgba(122,180,255,.2);color:#7AB4FF}
+.rol-jf{background:rgba(54,179,126,.2);color:#79E2B5}
+.rol-du{background:rgba(255,171,0,.2);color:#FFD966}
+.apro-bar{border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.apro-bar.apro-pend{background:#FFFBF0;border:1px solid var(--yellow)}
+.apro-bar.apro-ok1{background:#F0FFF8;border:1px solid var(--green)}
+.apro-bar.apro-ok2{background:#F0FFF8;border:2px solid var(--green)}
+.apro-bar.apro-rej{background:#FFF0F0;border:1px solid var(--red)}
+.apro-bar .apro-ico{font-size:20px}
+.apro-bar .apro-txt{flex:1;font-size:13px}
+.apro-bar .apro-txt strong{display:block;margin-bottom:2px}
+.apro-bar .apro-txt .apro-sub{color:var(--muted);font-size:12px}
+.bandeja-row{background:var(--card);border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-left:4px solid var(--border)}
+.bandeja-row.p-l1{border-left-color:var(--yellow)}
+.bandeja-row.p-l2{border-left-color:var(--blue)}
+.bandeja-row.p-rej{border-left-color:var(--red)}
+.hist-timeline{border-left:2px solid var(--border);margin:8px 0 0 12px;padding-left:16px}
+.hist-evt{position:relative;margin-bottom:8px;font-size:12px}
+.hist-evt::before{content:'';position:absolute;left:-21px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--border)}
+.hist-evt.h-env::before{background:var(--blue)}.hist-evt.h-apr::before{background:var(--green)}.hist-evt.h-rej::before{background:var(--red)}
+.ver-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;background:#EDF2FF;color:var(--blue);border:1px solid #B3D4FF;cursor:default}
+.ver-badge.ver-frozen{background:#E3FCEF;color:#006644;border-color:#ABF5D1}
+.ver-timeline{display:flex;flex-direction:column;gap:0;margin-bottom:16px}
+.ver-row{display:flex;align-items:stretch;gap:0}
+.ver-dot-col{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0}
+.ver-dot{width:12px;height:12px;border-radius:50%;background:var(--border);border:2px solid var(--card);z-index:1;margin-top:14px;flex-shrink:0}
+.ver-dot.active{background:var(--blue)}.ver-dot.frozen{background:var(--green)}
+.ver-line{flex:1;width:2px;background:var(--border)}
+.ver-card{flex:1;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:12px 14px;margin:4px 0 4px 8px;box-shadow:var(--shadow)}
+.ver-card.active{border-color:var(--blue);border-width:2px}
+.ver-card.frozen{border-color:var(--green)}
+.delta-pos{color:var(--green);font-weight:700}.delta-neg{color:var(--red);font-weight:700}.delta-neu{color:var(--muted)}
+.delta-row-chg td{background:#FFFBF0!important}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">BudgetApp</div>
+    <div class="sub">Gestión Presupuestaria</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">General</div>
+    <div class="nav-item active" onclick="nav('dash')" id="nav-dash"><span class="ico">&#128200;</span> Resumen</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Administración</div>
+    <div class="nav-item" onclick="nav('periodos')"  id="nav-periodos"><span class="ico">&#128197;</span> Apertura General</div>
+    <div class="nav-item" onclick="nav('tipos')"     id="nav-tipos"><span class="ico">&#127991;</span> Tipos de Presupuesto</div>
+    <div class="nav-item" onclick="nav('partidas')"  id="nav-partidas"><span class="ico">&#128218;</span> Catálogo de Partidas</div>
+    <div class="nav-item" onclick="nav('areas')"     id="nav-areas"><span class="ico">&#127970;</span> Departamentos</div>
+    <div class="nav-item" onclick="nav('proyectos')" id="nav-proyectos"><span class="ico">&#128736;</span> Proyectos</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Jefe de Departamento / PM</div>
+    <div class="nav-item" onclick="nav('ingresar')" id="nav-ingresar"><span class="ico">&#9997;</span> Ingresar Presupuesto</div>
+    <div class="nav-item" onclick="nav('reales')" id="nav-reales"><span class="ico">&#128200;</span> Ingresar Reales</div>
+  </div>
+  <div class="nav-group" id="navg-bandeja">
+    <div class="nav-label">Aprobaciones</div>
+    <div class="nav-item" onclick="nav('bandeja')" id="nav-bandeja"><span class="ico">&#9989;</span> Bandeja</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Análisis</div>
+    <div class="nav-item" onclick="nav('reportes')" id="nav-reportes"><span class="ico">&#128202;</span> Reportes</div>
+  </div>
+  <div class="nav-group" id="navg-usuarios">
+    <div class="nav-label">Sistema</div>
+    <div class="nav-item" onclick="nav('usuarios')" id="nav-usuarios"><span class="ico">&#128101;</span> Usuarios y Permisos</div>
+  </div>
+  <div class="sidebar-usr" id="sidebar-usr-box"></div>
+</aside>
+
+<main class="main">
+
+<!-- DASHBOARD -->
+<div id="v-dash">
+  <div class="page-header"><div><div class="page-title">Resumen</div><div class="page-sub">Estado del proceso presupuestario</div></div></div>
+  <div id="dash-body"></div>
+</div>
+
+<!-- APERTURA GENERAL -->
+<div id="v-periodos" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Apertura General</div><div class="page-sub">Habilita o cierra el ingreso de presupuesto</div></div>
+    <div class="hdr-acts"><button class="btn btn-primary" onclick="openModalPer()">+ Crear período</button></div>
+  </div>
+  <div class="info-box">Solo puede haber un período abierto a la vez. Al abrir, todos los tipos habilitados quedan disponibles.</div>
+  <div id="per-list"></div>
+</div>
+
+<!-- TIPOS DE PRESUPUESTO -->
+<div id="v-tipos" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Tipos de Presupuesto</div><div class="page-sub">Parametrización de los tipos disponibles</div></div>
+    <div class="hdr-acts"><button class="btn btn-primary" onclick="openModalTipo()">+ Nuevo tipo</button></div>
+  </div>
+  <div id="tipos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px"></div>
+</div>
+
+<!-- CATÁLOGO DE PARTIDAS -->
+<div id="v-partidas" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Catálogo de Partidas</div><div class="page-sub">Líneas de detalle presupuestario asociadas a cuentas contables</div></div>
+    <div class="hdr-acts">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fi-partidas').click()">&#8593; Importar Excel</button>
+      <input type="file" id="fi-partidas" accept=".xlsx,.xls,.csv" class="hidden" onchange="importPartidas(this)">
+      <button class="btn btn-ghost btn-sm" onclick="exportPlantillaPartidas()">&#8595; Exportar</button>
+      <button class="btn btn-primary" onclick="openModalPartida()">+ Nueva partida</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="partidas-filtro"></div>
+  <div class="tw">
+    <div class="tbar"><h3>Partidas</h3><span id="cnt-partidas" style="font-size:13px;color:var(--muted)"></span></div>
+    <table class="dt">
+      <thead><tr><th>Código</th><th>Nombre</th><th>Cuenta Contable</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-partidas"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DEPARTAMENTOS -->
+<div id="v-areas" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Departamentos</div><div class="page-sub">Unidades que participan en Gastos Operacionales e Inversiones</div></div>
+    <div class="hdr-acts"><button class="btn btn-primary" onclick="openModalArea()">+ Nuevo departamento</button></div>
+  </div>
+  <div class="tw">
+    <table class="dt">
+      <thead><tr><th>#</th><th>Departamento</th><th>Responsable</th><th>Partidas asignadas</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-areas"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PROYECTOS -->
+<div id="v-proyectos" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Proyectos</div><div class="page-sub">Proyectos con presupuesto independiente</div></div>
+    <div class="hdr-acts"><button class="btn btn-primary" onclick="openModalProy()">+ Nuevo proyecto</button></div>
+  </div>
+  <div class="tw">
+    <table class="dt">
+      <thead><tr><th>Código</th><th>Proyecto</th><th>Área</th><th>Responsable</th><th>Período</th><th>Estado</th><th>Partidas asig.</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-proyectos"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- INGRESAR PRESUPUESTO -->
+<div id="v-ingresar" class="hidden">
+  <div id="v-ing-tipo">
+    <div class="page-header"><div><div class="page-title">Ingresar Presupuesto</div><div class="page-sub">Selecciona el tipo de presupuesto</div></div></div>
+    <div id="ing-per-info"></div>
+    <div id="ing-tipos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px"></div>
+  </div>
+  <div id="v-ing-ent" class="hidden">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button class="btn btn-ghost btn-sm" onclick="backToTipos()">&#8592; Tipos</button>
+      <div><div style="font-size:19px;font-weight:800" id="ing-tipo-titulo"></div>
+      <div style="font-size:13px;color:var(--muted)" id="ing-tipo-sub"></div></div>
+    </div>
+    <div id="ing-ent-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px"></div>
+  </div>
+  <div id="v-ing-grid" class="hidden">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="backToEnt()">&#8592; Volver</button>
+      <div><div style="font-size:19px;font-weight:800" id="g-titulo"></div>
+      <div style="font-size:13px;color:var(--muted)" id="g-sub"></div></div>
+      <span id="g-badge" class="badge" style="margin-left:4px"></span>
+      <span id="g-tipo-pill" style="margin-left:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700"></span>
+      <span id="g-ver-badge" class="ver-badge hidden" style="margin-left:4px"></span>
+    </div>
+    <div id="apro-bar" class="apro-bar hidden"></div>
+    <div class="ptbar">
+      <div class="ptinfo">
+        <div><span style="color:var(--muted)">Período:</span> <strong id="t-per"></strong></div>
+        <div><span style="color:var(--muted)">Partidas:</span> <strong id="t-ctas"></strong></div>
+        <div><span style="color:var(--muted)">Total anual:</span> <strong id="t-tot" style="color:var(--blue)"></strong></div>
+      </div>
+      <div class="ptacts" id="grid-acts">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fi-ppto').click()">&#8593; Importar Excel</button>
+        <input type="file" id="fi-ppto" accept=".xlsx,.xls,.csv" class="hidden" onchange="importPpto(this)">
+        <button class="btn btn-ghost btn-sm" onclick="exportPlantillaPpto()">&#8595; Plantilla</button>
+        <button class="btn btn-ghost btn-sm hidden" id="btn-historial" onclick="openHistorial()">&#128221; Historial</button>
+        <button class="btn btn-ghost btn-sm hidden" id="btn-revision" onclick="openModalRevision()">&#10010; Nueva Revisión</button>
+        <button class="btn btn-ghost btn-sm" id="btn-repro" onclick="openModalRepro()">&#8644; Reprogramar</button>
+        <button class="btn btn-ghost btn-sm" id="btn-borrador" onclick="guardarBorrador()">Guardar borrador</button>
+        <button class="btn btn-success btn-sm" id="btn-enviar" onclick="enviarPpto()">Enviar</button>
+      </div>
+    </div>
+    <div class="pg-container"><div class="pg-scroll">
+      <table class="pg">
+        <thead><tr>
+          <th class="cc">Partida presupuestaria</th><th class="cd">Código</th>
+          <th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th><th>May</th><th>Jun</th>
+          <th>Jul</th><th>Ago</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th>
+          <th class="ct">Total</th>
+        </tr></thead>
+        <tbody id="pg-body"></tbody>
+        <tfoot id="pg-foot"></tfoot>
+      </table>
+    </div></div>
+  </div>
+</div>
+
+<!-- BANDEJA DE APROBACIONES -->
+<div id="v-bandeja" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Bandeja de Aprobaciones</div><div class="page-sub" id="bandeja-sub">Presupuestos pendientes de tu revisión</div></div>
+    <div class="hdr-acts">
+      <select id="bandeja-filtro" class="fld" style="margin:0;min-width:180px;padding:7px 11px;border:2px solid var(--border);border-radius:var(--radius);font-size:13px" onchange="rBandeja()">
+        <option value="pendiente">Pendientes</option>
+        <option value="todo">Todo el historial</option>
+      </select>
+    </div>
+  </div>
+  <div id="bandeja-body"></div>
+</div>
+
+<!-- USUARIOS Y PERMISOS -->
+<div id="v-usuarios" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Usuarios y Permisos</div><div class="page-sub">Gestión de roles y asignaciones de ingreso</div></div>
+    <div class="hdr-acts"><button class="btn btn-primary" onclick="openModalUsuario()">+ Nuevo usuario</button></div>
+  </div>
+  <div class="info-box">El <strong>Jefe de Departamento</strong> aprueba el presupuesto de su departamento (Nivel 1). El <strong>Jefe de Presupuesto</strong> hace la aprobación final (Nivel 2). Los <strong>Analistas</strong> solo pueden ingresar datos en los departamentos que se les asigne.</div>
+  <div class="tw">
+    <div class="tbar"><h3>Usuarios del sistema</h3></div>
+    <table class="dt">
+      <thead><tr><th>Usuario</th><th>Rol</th><th>Departamento vinculado</th><th>Departamentos con permiso de ingreso</th><th>Acciones</th></tr></thead>
+      <tbody id="tbody-usuarios"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- INGRESAR REALES -->
+<div id="v-reales" class="hidden">
+  <div id="v-real-tipo">
+    <div class="page-header"><div><div class="page-title">Ingresar Valores Reales</div><div class="page-sub">Registra lo ejecutado mes a mes para comparar con el presupuesto</div></div></div>
+    <div id="real-per-info"></div>
+    <div id="real-tipos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px"></div>
+  </div>
+  <div id="v-real-ent" class="hidden">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button class="btn btn-ghost btn-sm" onclick="backRealToTipos()">&#8592; Tipos</button>
+      <div><div style="font-size:19px;font-weight:800" id="real-tipo-titulo"></div>
+      <div style="font-size:13px;color:var(--muted)" id="real-tipo-sub"></div></div>
+    </div>
+    <div id="real-ent-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px"></div>
+  </div>
+  <div id="v-real-grid" class="hidden">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="backRealToEnt()">&#8592; Volver</button>
+      <div><div style="font-size:19px;font-weight:800" id="rg-titulo"></div>
+      <div style="font-size:13px;color:var(--muted)" id="rg-sub"></div></div>
+      <span id="rg-tipo-pill" style="margin-left:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700"></span>
+    </div>
+    <div class="ptbar">
+      <div class="ptinfo">
+        <div><span style="color:var(--muted)">Período:</span> <strong id="rt-per"></strong></div>
+        <div><span style="color:var(--muted)">Ejecutado:</span> <strong id="rt-ejec" style="color:var(--green)"></strong></div>
+        <div><span style="color:var(--muted)">Presupuesto:</span> <strong id="rt-ppto" style="color:var(--blue)"></strong></div>
+        <div><span style="color:var(--muted)">Variación:</span> <strong id="rt-var"></strong></div>
+      </div>
+      <div class="ptacts">
+        <button class="btn btn-success btn-sm" onclick="guardarReales()">&#10003; Guardar reales</button>
+      </div>
+    </div>
+    <div class="pg-container"><div class="pg-scroll">
+      <table class="pg">
+        <thead><tr>
+          <th class="cc">Partida presupuestaria</th><th class="cd">Código</th>
+          <th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th><th>May</th><th>Jun</th>
+          <th>Jul</th><th>Ago</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th>
+          <th class="ct">Total</th>
+        </tr></thead>
+        <tbody id="rg-body"></tbody>
+        <tfoot id="rg-foot"></tfoot>
+      </table>
+    </div></div>
+  </div>
+</div>
+
+<!-- REPORTES -->
+<div id="v-reportes" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Reportes y Análisis</div><div class="page-sub">Real vs Presupuesto, variaciones y resumen ejecutivo</div></div>
+    <div class="hdr-acts">
+      <button class="btn btn-ghost btn-sm" onclick="exportReporte()">&#8595; Exportar Excel</button>
+    </div>
+  </div>
+  <div class="rep-fbar">
+    <label>Período:</label>
+    <select id="rp-per" onchange="rReportes()"></select>
+    <label>Tipo:</label>
+    <select id="rp-tipo" onchange="rReportes()"></select>
+    <label>Entidad:</label>
+    <select id="rp-ent" onchange="rReportes()"></select>
+  </div>
+  <div class="rep-tabs">
+    <div class="rep-tab active" onclick="setRepTab('resumen')">&#129504; Resumen Ejecutivo</div>
+    <div class="rep-tab" onclick="setRepTab('rvp')">&#128200; Real vs Presupuesto</div>
+    <div class="rep-tab" onclick="setRepTab('repros')">&#8644; Reprogramaciones</div>
+  </div>
+  <div id="rep-resumen" class="rep-body active"></div>
+  <div id="rep-rvp" class="rep-body"></div>
+  <div id="rep-repros" class="rep-body"></div>
+</div>
+
+</main>
+</div>
+
+<!-- MODAL PERÍODO -->
+<div class="overlay hidden" id="modal-per">
+  <div class="modal">
+    <div class="mhdr"><h3>Crear Período Presupuestario</h3><button class="mx" onclick="cm('modal-per')">&times;</button></div>
+    <div class="mbody">
+      <div class="fld-row">
+        <div class="fld"><label>Año *</label><input type="number" id="mp-anio" min="2024" max="2035" placeholder="2027"></div>
+        <div class="fld"><label>Estado inicial</label>
+          <select id="mp-est"><option value="cerrado">Cerrado</option><option value="abierto">Abierto</option></select></div>
+      </div>
+      <div class="fld"><label>Descripción</label><input type="text" id="mp-desc" placeholder="Ej. Presupuesto Operacional 2027"></div>
+      <div class="fld-row">
+        <div class="fld"><label>Fecha inicio registro</label><input type="date" id="mp-ini"></div>
+        <div class="fld"><label>Fecha límite</label><input type="date" id="mp-lim"></div>
+      </div>
+      <div class="fld">
+        <label>Tipos habilitados en este período</label>
+        <div class="tipo-check-grid" id="mp-tipos-chk"></div>
+        <div class="fld-hint">Solo los tipos seleccionados estarán disponibles en este período.</div>
+      </div>
+      <div class="fld"><label>Instrucciones para los usuarios</label>
+        <textarea id="mp-obs" rows="2" placeholder="Instrucciones visibles al ingresar presupuesto..."></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-per')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPer()">Guardar período</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TIPO -->
+<div class="overlay hidden" id="modal-tipo">
+  <div class="modal">
+    <div class="mhdr"><h3 id="mt-title">Nuevo tipo de presupuesto</h3><button class="mx" onclick="cm('modal-tipo')">&times;</button></div>
+    <div class="mbody">
+      <div class="fld-row">
+        <div class="fld"><label>Código *</label><input type="text" id="mt-cod" placeholder="Ej. GASTOS">
+          <div class="fld-hint">Identificador único en mayúsculas</div></div>
+        <div class="fld"><label>Color</label>
+          <select id="mt-color">
+            <option value="#0052CC">Azul</option><option value="#36B37E">Verde</option>
+            <option value="#FFAB00">Amarillo</option><option value="#DE350B">Rojo</option>
+            <option value="#6554C0">Morado</option><option value="#00B8D9">Turquesa</option>
+          </select></div>
+      </div>
+      <div class="fld"><label>Nombre *</label><input type="text" id="mt-nom" placeholder="Ej. Gastos Operacionales"></div>
+      <div class="fld"><label>Descripción</label>
+        <input type="text" id="mt-desc" placeholder="Ej. Gastos corrientes por departamento"></div>
+      <div class="fld"><label>¿Qué entidad lo gestiona?</label>
+        <select id="mt-ent">
+          <option value="area">Departamento</option>
+          <option value="proyecto">Proyecto</option>
+        </select></div>
+      <div class="fld"><label>Ícono (emoji)</label>
+        <input type="text" id="mt-ico" placeholder="Ej. 💰" maxlength="2"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-tipo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarTipo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARTIDA -->
+<div class="overlay hidden" id="modal-part">
+  <div class="modal">
+    <div class="mhdr"><h3 id="mpt-title">Nueva partida</h3><button class="mx" onclick="cm('modal-part')">&times;</button></div>
+    <div class="mbody">
+      <div class="fld-row">
+        <div class="fld"><label>Código *</label><input type="text" id="mpt-cod" placeholder="Ej. SW.67">
+          <div class="fld-hint">Prefijo de la cuenta + número</div></div>
+        <div class="fld"><label>Cuenta Contable *</label><select id="mpt-cta"></select></div>
+      </div>
+      <div class="fld"><label>Nombre de la partida *</label>
+        <input type="text" id="mpt-nom" placeholder="Ej. Plataforma nueva XYZ"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-part')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPartida()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ÁREA -->
+<div class="overlay hidden" id="modal-area">
+  <div class="modal">
+    <div class="mhdr"><h3>Departamento</h3><button class="mx" onclick="cm('modal-area')">&times;</button></div>
+    <div class="mbody">
+      <div class="fld"><label>Nombre *</label><input type="text" id="ma-nom" placeholder="Ej. Facturacion / Cajas"></div>
+      <div class="fld"><label>Responsable *</label><input type="text" id="ma-res" placeholder="Nombre del jefe de departamento"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-area')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarArea()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROYECTO -->
+<div class="overlay hidden" id="modal-proy">
+  <div class="modal">
+    <div class="mhdr"><h3 id="mpy-title">Nuevo Proyecto</h3><button class="mx" onclick="cm('modal-proy')">&times;</button></div>
+    <div class="mbody">
+      <div class="fld-row">
+        <div class="fld"><label>Código *</label><input type="text" id="mpy-cod" placeholder="Ej. PRY-001"></div>
+        <div class="fld"><label>Área responsable</label><select id="mpy-area"></select></div>
+      </div>
+      <div class="fld"><label>Nombre del proyecto *</label><input type="text" id="mpy-nom" placeholder="Ej. Implementacion ERP"></div>
+      <div class="fld"><label>Responsable (PM) *</label><input type="text" id="mpy-res" placeholder="Nombre del gerente de proyecto"></div>
+      <div class="fld-row">
+        <div class="fld"><label>Fecha inicio</label><input type="date" id="mpy-ini"></div>
+        <div class="fld"><label>Fecha fin</label><input type="date" id="mpy-fin"></div>
+      </div>
+      <div class="fld"><label>Estado</label>
+        <select id="mpy-est">
+          <option value="activo">Activo</option>
+          <option value="pausado">Pausado</option>
+          <option value="cerrado">Cerrado</option>
+        </select></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-proy')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarProy()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ASIGNACIÓN DE PARTIDAS -->
+<div class="overlay hidden" id="modal-asig">
+  <div class="modal modal-xl">
+    <div class="mhdr">
+      <div>
+        <h3 id="masig-title">Asignar Partidas</h3>
+        <div id="masig-sub" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <button class="mx" onclick="cm('modal-asig')">&times;</button>
+    </div>
+    <div class="mbody">
+      <div class="fld">
+        <label>Tipo de presupuesto</label>
+        <div id="masig-tipos" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"></div>
+      </div>
+      <div id="masig-body" style="margin-top:16px"></div>
+    </div>
+    <div class="mfoot">
+      <span id="masig-count" style="font-size:13px;color:var(--muted);flex:1;align-self:center"></span>
+      <button class="btn btn-ghost" onclick="cm('modal-asig')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAsig()">Guardar asignación</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PREVIEW -->
+<div class="overlay hidden" id="modal-prev">
+  <div class="modal modal-xl">
+    <div class="mhdr"><h3 id="prev-t">Vista previa</h3><button class="mx" onclick="cm('modal-prev')">&times;</button></div>
+    <div class="mbody">
+      <div id="prev-info" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
+      <div style="overflow-x:auto;max-height:350px;border:1px solid var(--border);border-radius:var(--radius)">
+        <table class="dt" style="min-width:auto">
+          <thead id="prev-head"></thead><tbody id="prev-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-prev')">Cancelar</button>
+      <button class="btn btn-success" id="prev-ok">Confirmar importación</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUARIO -->
+<div class="overlay hidden" id="modal-usuario">
+  <div class="modal" style="max-width:500px">
+    <div class="mhdr"><h3 id="mu-title">Nuevo Usuario</h3><button class="mx" onclick="cm('modal-usuario')">&times;</button></div>
+    <div class="mbody">
+      <div class="fld-row">
+        <div class="fld"><label>Nombre completo *</label><input type="text" id="mu-nom" placeholder="Ej. Juan Pérez"></div>
+        <div class="fld"><label>Usuario *</label><input type="text" id="mu-user" placeholder="Ej. jperez"></div>
+      </div>
+      <div class="fld"><label>Email</label><input type="email" id="mu-email" placeholder="jperez@veris.com.ec"></div>
+      <div class="fld"><label>Rol *</label>
+        <select id="mu-rol" onchange="updModalUsuarioRol()">
+          <option value="dept_user">Analista / Ingresador</option>
+          <option value="dept_head">Jefe de Departamento</option>
+          <option value="budget_manager">Jefe de Presupuesto</option>
+        </select>
+        <div class="fld-hint" id="mu-rol-hint">Puede ingresar presupuesto solo en los departamentos que se le asignen.</div>
+      </div>
+      <div class="fld hidden" id="mu-area-wrap">
+        <label>Departamento que dirige *</label>
+        <select id="mu-area"></select>
+        <div class="fld-hint">El jefe verá y aprobará el presupuesto de este departamento (Nivel 1).</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-usuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarUsuario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ASIGNAR PERMISOS USUARIO -->
+<div class="overlay hidden" id="modal-asig-perm">
+  <div class="modal modal-xl">
+    <div class="mhdr">
+      <div><h3 id="map-title">Asignar Permisos de Ingreso</h3>
+      <div id="map-sub" style="font-size:12px;color:var(--muted);margin-top:2px"></div></div>
+      <button class="mx" onclick="cm('modal-asig-perm')">&times;</button>
+    </div>
+    <div class="mbody">
+      <div class="info-box" style="margin-bottom:14px">Selecciona los tipos y entidades donde este usuario puede <strong>ingresar</strong> datos de presupuesto.</div>
+      <div id="map-body"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-asig-perm')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAsigPerm()">Guardar permisos</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECHAZAR -->
+<div class="overlay hidden" id="modal-rechazar">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr"><h3>Rechazar Presupuesto</h3><button class="mx" onclick="cm('modal-rechazar')">&times;</button></div>
+    <div class="mbody">
+      <div class="warn-box">El solicitante recibirá el motivo del rechazo y deberá reenviar el presupuesto.</div>
+      <div class="fld" style="margin-top:14px">
+        <label>Motivo del rechazo *</label>
+        <textarea id="rej-comment" rows="3" placeholder="Describe qué debe corregir el solicitante..."></textarea>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-rechazar')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarRechazo()">Confirmar rechazo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA REVISIÓN -->
+<div class="overlay hidden" id="modal-revision">
+  <div class="modal" style="max-width:480px">
+    <div class="mhdr"><h3>Crear Nueva Revisión Presupuestaria</h3><button class="mx" onclick="cm('modal-revision')">&times;</button></div>
+    <div class="mbody">
+      <div class="info-box">La versión aprobada quedará congelada como referencia histórica. La nueva revisión copia esos montos como punto de partida y deberá pasar por el ciclo de aprobación nuevamente.</div>
+      <div class="fld" style="margin-top:14px">
+        <label>Nombre de la revisión *</label>
+        <input type="text" id="rev-nom" placeholder="Ej. Revisión Q3 2027 / Ajuste Octubre">
+      </div>
+      <div class="fld">
+        <label>Motivo del ajuste *</label>
+        <textarea id="rev-motivo" rows="3" placeholder="Describe el motivo: nueva contratación, recorte presupuestario, nuevo proyecto estratégico..."></textarea>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-revision')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarRevision()">Crear revisión</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL DE VERSIONES -->
+<div class="overlay hidden" id="modal-historial">
+  <div class="modal modal-xl" style="max-width:980px">
+    <div class="mhdr">
+      <div><h3 id="hist-title">Historial de Versiones</h3>
+      <div id="hist-sub" style="font-size:12px;color:var(--muted);margin-top:2px"></div></div>
+      <button class="mx" onclick="cm('modal-historial')">&times;</button>
+    </div>
+    <div class="mbody">
+      <div id="hist-timeline-wrap" style="margin-bottom:20px"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:700">Comparar:</span>
+        <select id="cmp-v1" style="padding:6px 10px;border:2px solid var(--border);border-radius:var(--radius);font-size:12px"></select>
+        <span style="font-size:13px;color:var(--muted)">vs</span>
+        <select id="cmp-v2" style="padding:6px 10px;border:2px solid var(--border);border-radius:var(--radius);font-size:12px"></select>
+        <button class="btn btn-primary btn-sm" onclick="renderComparacion()">Ver diferencias</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportComparacion()">&#8595; Exportar</button>
+      </div>
+      <div id="cmp-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REPROGRAMAR -->
+<div class="overlay hidden" id="modal-repro">
+  <div class="modal" style="max-width:620px">
+    <div class="mhdr"><h3>Reprogramar Presupuesto</h3><button class="mx" onclick="cm('modal-repro')">&times;</button></div>
+    <div class="mbody">
+      <div class="warn-box" style="margin-bottom:14px">El monto total anual se mantiene constante. Solo puedes mover saldo disponible (presupuesto − ejecutado).</div>
+      <div class="fld">
+        <label>Partida presupuestaria *</label>
+        <select id="rp-part" onchange="renderReproMonths()"></select>
+      </div>
+      <div id="repro-months-wrap" style="margin-bottom:14px"></div>
+      <div class="fld-row">
+        <div class="fld">
+          <label>Mes origen (quitar)</label>
+          <select id="rp-from"></select>
+        </div>
+        <div class="fld">
+          <label>Mes destino (añadir)</label>
+          <select id="rp-to"></select>
+        </div>
+      </div>
+      <div class="fld">
+        <label>Monto a mover *</label>
+        <input type="number" id="rp-amt" min="0" step="0.01" placeholder="0.00" oninput="updReproDisp()">
+        <div class="fld-hint" id="rp-disp-hint"></div>
+      </div>
+      <div class="fld">
+        <label>Justificación *</label>
+        <textarea id="rp-just" rows="2" placeholder="Razón del cambio (requerido para el registro de auditoría)..."></textarea>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cm('modal-repro')">Cancelar</button>
+      <button class="btn btn-primary" onclick="aplicarRepro()">Aplicar reprogramación</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MESES      = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ============= DATOS =============
+let tipos = [
+  {id:1, codigo:'GASTOS',   nombre:'Gastos Operacionales',    desc:'Gastos corrientes por departamento',  ent:'area',     color:'#0052CC', ico:'💰'},
+  {id:2, codigo:'PROYECTO', nombre:'Presupuesto de Proyecto', desc:'Presupuesto por proyecto especifico', ent:'proyecto', color:'#36B37E', ico:'🏗️'},
+  {id:3, codigo:'INVERSION',nombre:'Inversiones / CAPEX',     desc:'Activos fijos y equipamiento',        ent:'area',     color:'#6554C0', ico:'📦'},
+];
+let sigIdTipo = 4;
+
+// Cuentas contables — agrupadores contables. No se ingresan montos aquí, son la clasificación superior.
+let ctasContables = [
+  {id:1,  cod:'AE',  nom:'ALQUILER EQUIPOS'},
+  {id:2,  cod:'HP',  nom:'HONORARIOS PROFESIONALES'},
+  {id:3,  cod:'ME',  nom:'MANTENIMIENTO EQUIPO DE COMPUTACION'},
+  {id:4,  cod:'MV',  nom:'MOVILIZACION'},
+  {id:5,  cod:'PP',  nom:'PUBLICIDAD Y PROPAGANDA'},
+  {id:6,  cod:'RF',  nom:'REFRIGERIOS'},
+  {id:7,  cod:'SC',  nom:'SERVICIO COMUNICACION'},
+  {id:8,  cod:'SW',  nom:'SOFTWARE'},
+  {id:9,  cod:'SO',  nom:'SUMINISTROS DE OFICINA'},
+  {id:10, cod:'CA',  nom:'CAPACITACION Y ENTRENAMIENTO'},
+  {id:11, cod:'SG',  nom:'SEGUROS'},
+  {id:12, cod:'INV', nom:'INVERSIONES / CAPEX'},
+  {id:13, cod:'PRY', nom:'COSTOS DE PROYECTO'},
+];
+let sigIdCtaCont = 14;
+
+// Catálogo maestro de partidas — cada una asociada a una cuenta contable (ctaId).
+// Los departamentos y proyectos tienen asignado un subconjunto de este catálogo.
+let partidas = [
+  // ALQUILER EQUIPOS (ctaId:1)
+  {id:2,  cod:'AE.01', nom:'Almacenamiento Plataforma QReport',                     ctaId:1},
+  {id:3,  cod:'AE.02', nom:'Renta Infraestructura AWS - BI',                        ctaId:1},
+  {id:4,  cod:'AE.03', nom:'Renta Infraestructura AWS - Veris',                     ctaId:1},
+  // HONORARIOS PROFESIONALES (ctaId:2)
+  {id:6,  cod:'HP.01', nom:'Auditoria ISO 27001',                                   ctaId:2},
+  {id:7,  cod:'HP.02', nom:'Mantenimiento dia a dia Plataforma PhantomX',           ctaId:2},
+  {id:8,  cod:'HP.03', nom:'Mantenimiento Interfaces Equipos Biomedicos Lab. Nac.', ctaId:2},
+  {id:9,  cod:'HP.04', nom:'Mantenimiento Plataforma Nextcloud y Zimbra',           ctaId:2},
+  {id:10, cod:'HP.05', nom:'Mantenimiento Plataforma Web Veris y Parami',           ctaId:2},
+  {id:11, cod:'HP.06', nom:'Parametrizacion y Mantenimiento ISO 27001',             ctaId:2},
+  {id:12, cod:'HP.07', nom:'Plataforma AX',                                         ctaId:2},
+  // MANTENIMIENTO EQUIPO DE COMPUTACION (ctaId:3)
+  {id:14, cod:'ME.01', nom:'Equipos PC + Laptops + Monitores',                      ctaId:3},
+  {id:15, cod:'ME.02', nom:'Helpdesk - Mesa de Ayuda',                              ctaId:3},
+  {id:16, cod:'ME.03', nom:'Impresora Formulario Pre-impreso Tesoreria',            ctaId:3},
+  {id:17, cod:'ME.04', nom:'Partes y Piezas Guayaquil',                             ctaId:3},
+  {id:18, cod:'ME.05', nom:'Partes y Piezas Quito',                                 ctaId:3},
+  {id:19, cod:'ME.06', nom:'Servidores Locales CMV + Impresoras Zebra + Kioskos',   ctaId:3},
+  {id:20, cod:'ME.07', nom:'UPS',                                                   ctaId:3},
+  // MOVILIZACION (ctaId:4)
+  {id:22, cod:'MV.01', nom:'Auditoria ISO 27001',                                   ctaId:4},
+  {id:23, cod:'MV.02', nom:'Movilizacion personal TI - Quito',                      ctaId:4},
+  {id:24, cod:'MV.03', nom:'Movilizacion personal TI - Guayaquil',                  ctaId:4},
+  // PUBLICIDAD Y PROPAGANDA (ctaId:5)
+  {id:26, cod:'PP.01', nom:'Plataforma Mailing',                                    ctaId:5},
+  {id:27, cod:'PP.02', nom:'Plataforma WhatsApp',                                   ctaId:5},
+  // REFRIGERIOS (ctaId:6)
+  {id:29, cod:'RF.01', nom:'Auditoria ISO 27001',                                   ctaId:6},
+  {id:30, cod:'RF.02', nom:'Reuniones y eventos internos',                          ctaId:6},
+  // SERVICIO COMUNICACION (ctaId:7)
+  {id:32, cod:'SC.01', nom:'Internet',                                              ctaId:7},
+  {id:33, cod:'SC.02', nom:'Internet - 19 Sitios Teletrabajo',                      ctaId:7},
+  {id:34, cod:'SC.03', nom:'Radio Frecuencia',                                      ctaId:7},
+  // SOFTWARE (ctaId:8)
+  {id:36,  cod:'SW.01', nom:'Banco de Imagenes - MKT',                              ctaId:8},
+  {id:37,  cod:'SW.02', nom:'Cargadores Tabletas Laboratorio',                      ctaId:8},
+  {id:38,  cod:'SW.03', nom:'Certificado SSL Dominio miveris.com.ec',               ctaId:8},
+  {id:39,  cod:'SW.04', nom:'Certificado SSL Wildcard Dominio parami.com.ec',       ctaId:8},
+  {id:40,  cod:'SW.05', nom:'Certificado SSL Wildcard Dominio veris.com.ec',        ctaId:8},
+  {id:41,  cod:'SW.06', nom:'Desarrollo Plataforma de Prueba',                      ctaId:8},
+  {id:42,  cod:'SW.07', nom:'Editar Documentos + Firma Electronica',                ctaId:8},
+  {id:43,  cod:'SW.08', nom:'Editor de Graficos Vectorial - Raul Ayala',            ctaId:8},
+  {id:44,  cod:'SW.09', nom:'Equipos Switches',                                     ctaId:8},
+  {id:45,  cod:'SW.10', nom:'Ethical Hacking + Ing. Social',                        ctaId:8},
+  {id:46,  cod:'SW.11', nom:'Firewall AWS + Panorama + Mantenimiento 24x7',         ctaId:8},
+  {id:47,  cod:'SW.12', nom:'Firewall Sedes + Edif. Administrativos',               ctaId:8},
+  {id:48,  cod:'SW.13', nom:'Generador de Codigos QR Empresariales',                ctaId:8},
+  {id:49,  cod:'SW.14', nom:'Herramienta de Desarrollador - Sistemas',              ctaId:8},
+  {id:50,  cod:'SW.15', nom:'Herramienta Mapeo Trayectoria del Cliente (CX)',       ctaId:8},
+  {id:51,  cod:'SW.16', nom:'Libreria Caja-POS Datafast',                           ctaId:8},
+  {id:52,  cod:'SW.17', nom:'Licencias Ucontact',                                   ctaId:8},
+  {id:53,  cod:'SW.18', nom:'Mantenimiento 24x7 Firewall Sedes',                    ctaId:8},
+  {id:54,  cod:'SW.19', nom:'Mantenimiento App Veris - MiVeris',                    ctaId:8},
+  {id:55,  cod:'SW.20', nom:'Mantenimiento Canales Digitales App General y QA',     ctaId:8},
+  {id:56,  cod:'SW.21', nom:'Parametrizacion e Integracion Proyecto BCP',           ctaId:8},
+  {id:57,  cod:'SW.22', nom:'Parametrizacion e Integracion Proyecto SIAC',          ctaId:8},
+  {id:58,  cod:'SW.23', nom:'Plataforma Mensajeria de Video Instantanea',           ctaId:8},
+  {id:59,  cod:'SW.24', nom:'Plataforma Analisis Comportamiento Usuarios Web',      ctaId:8},
+  {id:60,  cod:'SW.25', nom:'Plataforma API Google parami.com.ec',                  ctaId:8},
+  {id:61,  cod:'SW.26', nom:'Plataforma API Google veris.com.ec',                   ctaId:8},
+  {id:62,  cod:'SW.27', nom:'Plataforma BRMS',                                      ctaId:8},
+  {id:63,  cod:'SW.28', nom:'Plataforma Cortex XDR',                                ctaId:8},
+  {id:64,  cod:'SW.29', nom:'Plataforma de Academia Veris',                         ctaId:8},
+  {id:65,  cod:'SW.30', nom:'Plataforma de Almacenamiento de MKT',                  ctaId:8},
+  {id:66,  cod:'SW.31', nom:'Plataforma de Encuestas',                              ctaId:8},
+  {id:67,  cod:'SW.32', nom:'Plataforma de Presentaciones - CX',                    ctaId:8},
+  {id:68,  cod:'SW.33', nom:'Plataforma Desarrollo iOS',                            ctaId:8},
+  {id:69,  cod:'SW.34', nom:'Plataforma Diseno para MKT - 4 Licencias',             ctaId:8},
+  {id:70,  cod:'SW.35', nom:'Plataforma Edicion de Videos',                         ctaId:8},
+  {id:71,  cod:'SW.36', nom:'Plataforma Fondo de Ahorro',                           ctaId:8},
+  {id:72,  cod:'SW.37', nom:'Plataforma Google',                                    ctaId:8},
+  {id:73,  cod:'SW.38', nom:'Plataforma JBoss',                                     ctaId:8},
+  {id:74,  cod:'SW.39', nom:'Plataforma Microsoft Azure',                           ctaId:8},
+  {id:75,  cod:'SW.40', nom:'Plataforma Netflix',                                   ctaId:8},
+  {id:76,  cod:'SW.41', nom:'Plataforma Netscaler',                                 ctaId:8},
+  {id:77,  cod:'SW.42', nom:'Plataforma NOC Infraestructura',                       ctaId:8},
+  {id:78,  cod:'SW.43', nom:'Plataforma Paperless',                                 ctaId:8},
+  {id:79,  cod:'SW.44', nom:'Plataforma para Validar Correos Electronicos',         ctaId:8},
+  {id:80,  cod:'SW.45', nom:'Plataforma Polux',                                     ctaId:8},
+  {id:81,  cod:'SW.46', nom:'Plataforma Power BI',                                  ctaId:8},
+  {id:82,  cod:'SW.47', nom:'Plataforma Power BI para Desarrollo',                  ctaId:8},
+  {id:83,  cod:'SW.48', nom:'Plataforma QReport',                                   ctaId:8},
+  {id:84,  cod:'SW.49', nom:'Plataforma Tableau - 3 Licencias',                     ctaId:8},
+  {id:85,  cod:'SW.50', nom:'Plataforma Trello',                                    ctaId:8},
+  {id:86,  cod:'SW.51', nom:'Plataforma Website',                                   ctaId:8},
+  {id:87,  cod:'SW.52', nom:'Plataforma Zabbix',                                    ctaId:8},
+  {id:88,  cod:'SW.53', nom:'Plataforma Zoom',                                      ctaId:8},
+  {id:89,  cod:'SW.54', nom:'Renovacion Anual Dominio miveris.com.ec',              ctaId:8},
+  {id:90,  cod:'SW.55', nom:'Renovacion Anual Dominio parami.com.ec',               ctaId:8},
+  {id:91,  cod:'SW.56', nom:'Renovacion Anual Dominio phantomx.com.ec',             ctaId:8},
+  {id:92,  cod:'SW.57', nom:'Renovacion Anual Dominio veris.com.ec',                ctaId:8},
+  {id:93,  cod:'SW.58', nom:'Renovacion Anual Oracle',                              ctaId:8},
+  {id:94,  cod:'SW.59', nom:'Renovacion Anual Plataforma Microsoft',                ctaId:8},
+  {id:95,  cod:'SW.60', nom:'Renovacion Cortex XDR',                                ctaId:8},
+  {id:96,  cod:'SW.61', nom:'Renovacion Dominio (general)',                         ctaId:8},
+  {id:97,  cod:'SW.62', nom:'Renta High Volume Plan - 2.000.000 emails',            ctaId:8},
+  {id:98,  cod:'SW.63', nom:'Renta Infraestructura AWS - Desarrollo',               ctaId:8},
+  {id:99,  cod:'SW.64', nom:'Renta Infraestructura AWS - Site Alterno',             ctaId:8},
+  {id:100, cod:'SW.65', nom:'Renta Infraestructura AWS - Trendmicro',               ctaId:8},
+  {id:101, cod:'SW.66', nom:'Renta Infraestructura Pagina Web',                     ctaId:8},
+  // SUMINISTROS DE OFICINA (ctaId:9)
+  {id:103, cod:'SO.01', nom:'Impresion y Copiado',                                  ctaId:9},
+  {id:104, cod:'SO.02', nom:'Renta de Impresoras',                                  ctaId:9},
+  // CAPACITACION Y ENTRENAMIENTO (ctaId:10)
+  {id:106, cod:'CA.01', nom:'Certificaciones Cloud (AWS, Azure, GCP)',              ctaId:10},
+  {id:107, cod:'CA.02', nom:'Certificaciones de Seguridad (CISSP, CEH, ISO)',       ctaId:10},
+  {id:108, cod:'CA.03', nom:'Capacitacion Tecnica Externa',                         ctaId:10},
+  {id:109, cod:'CA.04', nom:'Plataformas de Aprendizaje (Pluralsight, Udemy)',      ctaId:10},
+  {id:110, cod:'CA.05', nom:'Capacitacion Usuarios Internos',                       ctaId:10},
+  // SEGUROS (ctaId:11)
+  {id:112, cod:'SG.01', nom:'Seguro Equipos de Computacion',                        ctaId:11},
+  {id:113, cod:'SG.02', nom:'Seguro Infraestructura de Red',                        ctaId:11},
+  // INVERSIONES / CAPEX (ctaId:12)
+  {id:115, cod:'INV.01',nom:'Adquisicion Equipos PC + Laptops',                     ctaId:12},
+  {id:116, cod:'INV.02',nom:'Adquisicion Servidores',                               ctaId:12},
+  {id:117, cod:'INV.03',nom:'Adquisicion Switches y Equipos de Red',                ctaId:12},
+  {id:118, cod:'INV.04',nom:'Adquisicion UPS y Equipos Electricos',                 ctaId:12},
+  {id:119, cod:'INV.05',nom:'Infraestructura Data Center Local',                    ctaId:12},
+  {id:120, cod:'INV.06',nom:'Adecuaciones Fisicas Centro de Datos',                 ctaId:12},
+  // COSTOS DE PROYECTO (ctaId:13)
+  {id:122, cod:'PRY.01',nom:'Consultoria Externa / Honorarios Proyecto',            ctaId:13},
+  {id:123, cod:'PRY.02',nom:'Personal Temporal de Proyecto',                        ctaId:13},
+  {id:124, cod:'PRY.03',nom:'Licencias y Herramientas de Proyecto',                 ctaId:13},
+  {id:125, cod:'PRY.04',nom:'Desarrollo y Programacion',                            ctaId:13},
+  {id:126, cod:'PRY.05',nom:'Pruebas y Certificacion de Calidad',                   ctaId:13},
+  {id:127, cod:'PRY.06',nom:'Capacitacion Usuarios Proyecto',                       ctaId:13},
+  {id:128, cod:'PRY.07',nom:'PMO y Coordinacion del Proyecto',                      ctaId:13},
+  {id:129, cod:'PRY.08',nom:'Documentacion y Entregables',                          ctaId:13},
+  {id:130, cod:'PRY.09',nom:'Contingencia del Proyecto',                            ctaId:13},
+];
+let sigIdPart = 131;
+
+let areas = [
+  {id:1, nom:'Facturacion / Cajas',       res:'Maria Lopez'    },
+  {id:2, nom:'Agendamiento',              res:'Carlos Perez'   },
+  {id:3, nom:'Historia Clinica',          res:'Ana Torres'     },
+  {id:4, nom:'Laboratorio',               res:'Luis Mora'      },
+  {id:5, nom:'Comercial / Convenios',     res:'Sofia Ruiz'     },
+  {id:6, nom:'Financiero / Contabilidad', res:'Pedro Castro'   },
+  {id:7, nom:'TI / Sistemas',             res:'Jonathan Vargas'},
+];
+let sigIdArea = 8;
+
+let proyectos = [
+  {id:1, cod:'PRY-001', nom:'Implementacion ERP',   areaId:7, res:'Jonathan Vargas', ini:'2027-01-01', fin:'2027-12-31', est:'activo'},
+  {id:2, cod:'PRY-002', nom:'Expansion Sede Norte', areaId:1, res:'Maria Lopez',     ini:'2027-03-01', fin:'2027-09-30', est:'activo'},
+];
+let sigIdPry = 3;
+
+let periodos = [
+  {id:1, anio:2026, desc:'Presupuesto 2026', est:'cerrado', ini:'2025-11-01', lim:'2025-12-15', obs:'', tipos:['GASTOS','INVERSION']},
+  {id:2, anio:2027, desc:'Presupuesto Operacional 2027', est:'abierto', ini:'2026-10-15', lim:'2026-11-30',
+   obs:'Registrar antes del 30 de noviembre.', tipos:['GASTOS','PROYECTO','INVERSION']},
+];
+let sigIdPer = 3;
+
+// asignaciones[tipoCod][entId] = [partidaId, ...]
+// TI/Sistemas (area 7) recibe el catálogo completo como punto de partida.
+let asignaciones = {
+  'GASTOS':    {7: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id)},
+  'INVERSION': {7: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id)},
+  'PROYECTO':  {}
+};
+
+let pptos  = {}; // pptos[perId][tipoCod][entId][partidaId][mes]
+let reales = {}; // reales[perId][tipoCod][entId][partidaId][mes]
+let ests   = {}; // ests[perId][tipoCod][entId]
+let repros = []; // historial de reprogramaciones
+let sigIdRepro = 1;
+
+// ---- VERSIONES ----
+// versiones[perId][tipoCod][entId] = [{id, num, nom, motivo, fecha, creadoPorNom, estFinal}]
+let versiones  = {};
+// snapshots de pptos por versión congelada: vsnap[perId][tipoCod][entId][verId][partidaId] = [12 meses]
+let vsnap      = {};
+// sigIdVer es global para IDs únicos entre entidades
+let sigIdVer   = 1;
+let st     = {perId:null, tipoCod:null, entId:null};
+let stReal = {perId:null, tipoCod:null, entId:null};
+let prevCb = null;
+let filtroPartCta = null;
+let asigCtx = {ent:'area', entId:null, tipoCod:null};
+
+// ============= PALETA CUENTAS CONTABLES =============
+const CTA_PALETTE = ['#0052CC','#36B37E','#6554C0','#00B8D9','#FFAB00','#DE350B','#0747A6','#403294','#006644','#FF8B00','#BF2600','#344563','#091E42'];
+function ctaColor(cta){ return CTA_PALETTE[(cta.id-1)%CTA_PALETTE.length]; }
+function ctaBadge(cta){ return `<span style="background:${ctaColor(cta)};color:#fff;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;margin-right:5px">${cta.cod}</span>`; }
+
+// ============= UTILS =============
+const fmt   = n => '$'+(n||0).toLocaleString('es-EC',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtN  = n =>    (n||0).toLocaleString('es-EC',{minimumFractionDigits:0,maximumFractionDigits:0});
+const toast = (m,d=2800) => { const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),d); };
+const cm    = id => document.getElementById(id).classList.add('hidden');
+const pact  = ()  => periodos.find(p=>p.est==='abierto')||null;
+const getPp = (p,t,e,pid,m) => ((((pptos[p]||{})[t]||{})[e]||{})[pid]||[])[m]||0;
+const setPp = (p,t,e,pid,m,v) => {
+  if(!pptos[p])pptos[p]={};
+  if(!pptos[p][t])pptos[p][t]={};
+  if(!pptos[p][t][e])pptos[p][t][e]={};
+  if(!pptos[p][t][e][pid])pptos[p][t][e][pid]=Array(12).fill(0);
+  pptos[p][t][e][pid][m]=parseFloat(v)||0;
+};
+function getPartidasEnt(tipCod, entId){
+  const ids=((asignaciones[tipCod]||{})[entId])||[];
+  return partidas.filter(p=>ids.includes(p.id)).sort((a,b)=>a.cod.localeCompare(b.cod,'es',{numeric:true}));
+}
+const totalEnt = (p,t,e) => getPartidasEnt(t,e).reduce((s,pp)=>{for(let m=0;m<12;m++)s+=getPp(p,t,e,pp.id,m);return s;},0);
+const getEst   = (p,t,e) => (((ests[p]||{})[t]||{})[e])||'sin';
+const setEst   = (p,t,e,v) => { if(!ests[p])ests[p]={}; if(!ests[p][t])ests[p][t]={}; ests[p][t][e]=v; };
+const bEst     = e => ({
+  sin: ['b-sin','Sin apertura'],
+  bor: ['b-bor','Borrador'],
+  env: ['b-env','Enviado — Pend. Jefe'],
+  apr1:['b-apr','Aprobado Jefe'],
+  apr2:['b-apr','Aprobado Final'],
+  rej1:['b-rej','Rechazado — Jefe'],
+  rej2:['b-rej','Rechazado — Presupuesto'],
+})[e]||['b-sin',e];
+const getTipo  = cod => tipos.find(t=>t.codigo===cod);
+const getEnt   = (tipCod, id) => { const t=getTipo(tipCod); return t?.ent==='proyecto' ? proyectos.find(p=>p.id===id) : areas.find(a=>a.id===id); };
+const getEnts  = tipCod => { const t=getTipo(tipCod); return t?.ent==='proyecto' ? proyectos : areas; };
+// Versión filtrada por rol — solo entidades a las que el usuario activo tiene acceso
+function getEntsVisibles(tipCod){
+  const todas=getEnts(tipCod);
+  const u=getCurUser(); if(!u)return [];
+  if(u.rol==='budget_manager')return todas;
+  if(u.rol==='dept_head'){
+    const t=getTipo(tipCod);
+    if(t.ent==='area')    return todas.filter(e=>e.id===u.areaId);
+    if(t.ent==='proyecto')return todas.filter(e=>e.areaId===u.areaId);
+  }
+  if(u.rol==='dept_user'){
+    const asigTipo=permisos[tipCod]||{};
+    return todas.filter(e=>(asigTipo[e.id]||[]).includes(u.id));
+  }
+  return [];
+}
+
+const getReal = (p,t,e,pid,m) => ((((reales[p]||{})[t]||{})[e]||{})[pid]||[])[m]||0;
+const setReal = (p,t,e,pid,m,v) => {
+  if(!reales[p])reales[p]={};
+  if(!reales[p][t])reales[p][t]={};
+  if(!reales[p][t][e])reales[p][t][e]={};
+  if(!reales[p][t][e][pid])reales[p][t][e][pid]=Array(12).fill(0);
+  reales[p][t][e][pid][m]=parseFloat(v)||0;
+};
+const totalRealEnt = (p,t,e) => getPartidasEnt(t,e).reduce((s,pp)=>{for(let m=0;m<12;m++)s+=getReal(p,t,e,pp.id,m);return s;},0);
+
+// ============= NAV =============
+const renders = {dash:rDash,periodos:rPeriodos,tipos:rTipos,partidas:rPartidas,areas:rAreas,proyectos:rProy,ingresar:rIngresar,reales:rReales,reportes:rReportes,bandeja:rBandeja,usuarios:rUsuarios};
+function nav(id){
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  document.getElementById('nav-'+id).classList.add('active');
+  document.querySelectorAll('[id^="v-"]').forEach(e=>e.classList.add('hidden'));
+  document.getElementById('v-'+id).classList.remove('hidden');
+  renders[id]&&renders[id]();
+}
+
+// ============= DASHBOARD =============
+function rDash(){
+  const pa=pact();
+  const db=document.getElementById('dash-body');
+  if(!pa){ db.innerHTML='<div class="warn-box">No hay ningún período abierto. Ve a <strong>Apertura General</strong>.</div>'; return; }
+  const tiposAct=tipos.filter(t=>pa.tipos.includes(t.codigo));
+  let rows='';
+  tiposAct.forEach(t=>{
+    const ents=getEnts(t.codigo);
+    const env=ents.filter(e=>['env','apr'].includes(getEst(pa.id,t.codigo,e.id))).length;
+    const tot=ents.reduce((s,e)=>s+totalEnt(pa.id,t.codigo,e.id),0);
+    rows+=`<tr>
+      <td><span style="display:inline-flex;align-items:center;gap:8px">
+        <span style="background:${t.color};color:#fff;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${t.ico} ${t.nombre}</span>
+      </span></td>
+      <td>${ents.length}</td>
+      <td>${env} / ${ents.length}</td>
+      <td style="font-weight:700;color:${tot>0?'var(--blue)':'var(--muted)'}">${tot>0?fmt(tot):'—'}</td>
+    </tr>`;
+  });
+  const totGlobal=tiposAct.reduce((s,t)=>s+getEnts(t.codigo).reduce((ss,e)=>ss+totalEnt(pa.id,t.codigo,e.id),0),0);
+  db.innerHTML=`
+    <div class="cards-row">
+      <div class="scard"><div class="lbl">Período activo</div><div class="val" style="font-size:18px;color:var(--blue)">${pa.anio}</div><div class="hnt">${pa.desc}</div></div>
+      <div class="scard"><div class="lbl">Tipos habilitados</div><div class="val">${tiposAct.length}</div><div class="hnt">${tiposAct.map(t=>t.ico+' '+t.nombre).join(', ')}</div></div>
+      <div class="scard"><div class="lbl">Total presupuestado</div><div class="val" style="color:var(--blue);font-size:18px">${fmt(totGlobal)}</div><div class="hnt">Todos los tipos</div></div>
+    </div>
+    ${pa.obs?'<div class="info-box"><strong>Instrucciones:</strong> '+pa.obs+'</div>':''}
+    <div class="tw">
+      <div class="tbar"><h3>Avance por tipo — ${pa.anio}</h3><span style="font-size:12px;color:var(--muted)">Límite: ${pa.lim||'—'}</span></div>
+      <table class="dt"><thead><tr><th>Tipo</th><th>Entidades</th><th>Enviados</th><th>Total</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>`;
+}
+
+// ============= PERÍODOS =============
+function rPeriodos(){
+  const ct=document.getElementById('per-list');
+  if(!periodos.length){ct.innerHTML='<div class="warn-box">Sin períodos.</div>';return;}
+  ct.innerHTML=periodos.map(p=>{
+    const open=p.est==='abierto';
+    const tiposP=tipos.filter(t=>p.tipos.includes(t.codigo));
+    const totEnv=tiposP.reduce((s,t)=>{const ents=getEnts(t.codigo);return s+ents.filter(e=>['env','apr'].includes(getEst(p.id,t.codigo,e.id))).length;},0);
+    const totEnt=tiposP.reduce((s,t)=>s+getEnts(t.codigo).length,0);
+    const pct=totEnt?Math.round(totEnv/totEnt*100):0;
+    return `<div class="pcard ${open?'popen':'pcerr'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div><div style="font-size:17px;font-weight:800">${p.anio} — ${p.desc}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Inicio: ${p.ini||'—'} &nbsp;|&nbsp; Límite: ${p.lim||'—'}</div></div>
+        <div style="display:flex;gap:7px;align-items:center">
+          <span class="badge ${open?'b-open':'b-closed'}">${open?'ABIERTO':'CERRADO'}</span>
+          <button class="btn btn-xs ${open?'btn-danger':'btn-success'}" onclick="togglePer(${p.id})">${open?'Cerrar':'Abrir'}</button>
+          ${!open?`<button class="btn btn-xs btn-ghost" onclick="delPer(${p.id})">Eliminar</button>`:''}
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${tiposP.map(t=>`<span style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${t.ico} ${t.nombre}</span>`).join('')}
+      </div>
+      <div style="font-size:12px;color:var(--muted)">${totEnv} de ${totEnt} entidades enviaron (${pct}%)</div>
+      <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+      ${p.obs?`<div style="font-size:12px;color:var(--muted);margin-top:8px">${p.obs}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function openModalPer(){
+  ['mp-anio','mp-desc','mp-ini','mp-lim','mp-obs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mp-est').value='cerrado';
+  document.getElementById('mp-tipos-chk').innerHTML=tipos.map(t=>`
+    <label class="tipo-check sel" onclick="toggleTipoChk(this)">
+      <input type="checkbox" value="${t.codigo}" checked>${t.ico} ${t.nombre}
+    </label>`).join('');
+  document.getElementById('modal-per').classList.remove('hidden');
+}
+function toggleTipoChk(el){el.classList.toggle('sel');}
+function guardarPer(){
+  const anio=parseInt(document.getElementById('mp-anio').value);
+  if(!anio){alert('Ingresa el año');return;}
+  if(periodos.find(p=>p.anio===anio)){alert('Ya existe un período para '+anio);return;}
+  const selTipos=[...document.querySelectorAll('#mp-tipos-chk .sel input')].map(i=>i.value);
+  if(!selTipos.length){alert('Selecciona al menos un tipo');return;}
+  periodos.push({id:sigIdPer++,anio,desc:document.getElementById('mp-desc').value.trim()||'Presupuesto '+anio,
+    est:document.getElementById('mp-est').value,ini:document.getElementById('mp-ini').value,
+    lim:document.getElementById('mp-lim').value,obs:document.getElementById('mp-obs').value.trim(),tipos:selTipos});
+  cm('modal-per'); rPeriodos(); toast('Período '+anio+' creado');
+}
+function togglePer(id){
+  const p=periodos.find(x=>x.id===id); if(!p)return;
+  if(p.est==='abierto'){if(!confirm('Cerrar el período '+p.anio+'?'))return; p.est='cerrado'; toast('Período cerrado');}
+  else{periodos.filter(x=>x.est==='abierto').forEach(x=>x.est='cerrado'); p.est='abierto'; toast('Período '+p.anio+' abierto');}
+  rPeriodos();
+}
+function delPer(id){
+  if(!confirm('Eliminar? Se perderán todos los datos.'))return;
+  periodos=periodos.filter(p=>p.id!==id); delete pptos[id]; delete ests[id]; rPeriodos();
+}
+
+// ============= TIPOS =============
+function rTipos(){
+  document.getElementById('tipos-grid').innerHTML=tipos.map(t=>`
+    <div class="tipo-card">
+      <div class="tipo-icon" style="background:${t.color}22;color:${t.color}">${t.ico}</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:4px">${t.nombre}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${t.desc}</div>
+      <div style="font-size:11px;margin-bottom:4px"><span class="tag">Gestiona: ${t.ent==='proyecto'?'Proyectos':'Departamentos'}</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Código: <code>${t.codigo}</code></div>
+      <div style="margin-top:12px;display:flex;gap:7px">
+        <button class="btn btn-xs btn-ghost" onclick="editTipo(${t.id})">Editar</button>
+        <button class="btn btn-xs" style="background:var(--bg);color:var(--red);border:none;cursor:pointer" onclick="delTipo(${t.id})">Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+function openModalTipo(id){
+  const t=id?tipos.find(x=>x.id===id):null;
+  document.getElementById('mt-title').textContent=id?'Editar tipo':'Nuevo tipo de presupuesto';
+  document.getElementById('mt-cod').value  =t?t.codigo:'';
+  document.getElementById('mt-nom').value  =t?t.nombre:'';
+  document.getElementById('mt-desc').value =t?t.desc:'';
+  document.getElementById('mt-color').value=t?t.color:'#0052CC';
+  document.getElementById('mt-ent').value  =t?t.ent:'area';
+  document.getElementById('mt-ico').value  =t?t.ico:'';
+  document.getElementById('modal-tipo').dataset.eid=id||'';
+  document.getElementById('modal-tipo').classList.remove('hidden');
+}
+function editTipo(id){openModalTipo(id);}
+function guardarTipo(){
+  const cod=document.getElementById('mt-cod').value.trim().toUpperCase();
+  const nom=document.getElementById('mt-nom').value.trim();
+  if(!cod||!nom){alert('Completa código y nombre');return;}
+  const eid=parseInt(document.getElementById('modal-tipo').dataset.eid||'0');
+  if(eid){const t=tipos.find(x=>x.id===eid);if(t){t.codigo=cod;t.nombre=nom;t.desc=document.getElementById('mt-desc').value.trim();t.color=document.getElementById('mt-color').value;t.ent=document.getElementById('mt-ent').value;t.ico=document.getElementById('mt-ico').value||'📋';}}
+  else{if(tipos.find(t=>t.codigo===cod)){alert('Código ya existe');return;} tipos.push({id:sigIdTipo++,codigo:cod,nombre:nom,desc:document.getElementById('mt-desc').value.trim(),color:document.getElementById('mt-color').value,ent:document.getElementById('mt-ent').value,ico:document.getElementById('mt-ico').value||'📋'});}
+  cm('modal-tipo'); rTipos(); toast('Tipo guardado');
+}
+function delTipo(id){if(!confirm('Eliminar?'))return; tipos=tipos.filter(t=>t.id!==id); rTipos();}
+
+// ============= CATÁLOGO DE PARTIDAS =============
+function rPartidas(){
+  // filtro por cuenta contable
+  const ft=document.getElementById('partidas-filtro');
+  ft.innerHTML=`<button class="btn btn-xs ${!filtroPartCta?'btn-primary':'btn-ghost'}" onclick="setFiltroPartida(null)">Todas</button>`+
+    ctasContables.map(c=>`<button class="btn btn-xs ${filtroPartCta===c.id?'btn-primary':'btn-ghost'}"
+      style="${filtroPartCta===c.id?'background:'+ctaColor(c)+';border-color:'+ctaColor(c):''}"
+      onclick="setFiltroPartida(${c.id})">${c.cod}</button>`).join('');
+
+  const vis=filtroPartCta ? partidas.filter(p=>p.ctaId===filtroPartCta) : [...partidas];
+  vis.sort((a,b)=>a.cod.localeCompare(b.cod,'es',{numeric:true}));
+  document.getElementById('cnt-partidas').textContent=vis.length+' partidas'+(filtroPartCta?' (filtradas)':'');
+
+  document.getElementById('tbody-partidas').innerHTML=vis.map(p=>{
+    const cta=ctasContables.find(c=>c.id===p.ctaId);
+    return `<tr>
+      <td><code style="font-size:12px">${p.cod}</code></td>
+      <td>${p.nom}</td>
+      <td>${cta?ctaBadge(cta)+cta.nom:'—'}</td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="editPartida(${p.id})">Editar</button>
+        <button class="btn btn-xs" style="background:var(--bg);color:var(--red);border:none;cursor:pointer;margin-left:4px" onclick="delPartida(${p.id})">&#10005;</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function setFiltroPartida(ctaId){filtroPartCta=ctaId; rPartidas();}
+function openModalPartida(id){
+  const p=id?partidas.find(x=>x.id===id):null;
+  document.getElementById('mpt-title').textContent=id?'Editar partida':'Nueva partida';
+  document.getElementById('mpt-cod').value=p?p.cod:'';
+  document.getElementById('mpt-nom').value=p?p.nom:'';
+  document.getElementById('mpt-cta').innerHTML=ctasContables.map(c=>`<option value="${c.id}" ${p&&p.ctaId===c.id?'selected':''}>${c.cod} — ${c.nom}</option>`).join('');
+  if(p)document.getElementById('mpt-cta').value=p.ctaId;
+  document.getElementById('modal-part').dataset.eid=id||'';
+  document.getElementById('modal-part').classList.remove('hidden');
+}
+function editPartida(id){openModalPartida(id);}
+function guardarPartida(){
+  const cod=document.getElementById('mpt-cod').value.trim();
+  const nom=document.getElementById('mpt-nom').value.trim();
+  const ctaId=parseInt(document.getElementById('mpt-cta').value);
+  if(!cod||!nom||!ctaId){alert('Completa todos los campos');return;}
+  const eid=parseInt(document.getElementById('modal-part').dataset.eid||'0');
+  if(eid){const p=partidas.find(x=>x.id===eid);if(p){p.cod=cod;p.nom=nom;p.ctaId=ctaId;}}
+  else{
+    if(partidas.find(p=>p.cod===cod)){alert('Código ya existe');return;}
+    partidas.push({id:sigIdPart++,cod,nom,ctaId});
+  }
+  cm('modal-part'); rPartidas(); toast('Partida guardada');
+}
+function delPartida(id){
+  if(!confirm('Eliminar partida? Se perderán los montos ingresados para esta partida.'))return;
+  partidas=partidas.filter(p=>p.id!==id);
+  // limpiar asignaciones
+  Object.keys(asignaciones).forEach(tc=>Object.keys(asignaciones[tc]).forEach(eid=>{
+    asignaciones[tc][eid]=asignaciones[tc][eid].filter(pid=>pid!==id);
+  }));
+  rPartidas(); toast('Partida eliminada');
+}
+function importPartidas(input){
+  if(!input.files[0])return;
+  leerExcel(input.files[0],data=>{
+    prevCb=()=>{
+      data.forEach(r=>{
+        const cod=String(r['Codigo']||r['Código']||'').trim();
+        const nom=String(r['Nombre']||r['nombre']||'').trim();
+        const ctaCod=String(r['Cuenta']||r['CuentaCod']||'').trim().toUpperCase();
+        if(!cod||!nom)return;
+        const cta=ctasContables.find(c=>c.cod===ctaCod);
+        const ctaId=cta?cta.id:(parseInt(r['ctaId'])||1);
+        const ex=partidas.find(p=>p.cod===cod);
+        if(ex){ex.nom=nom;ex.ctaId=ctaId;}
+        else partidas.push({id:sigIdPart++,cod,nom,ctaId});
+      });
+      cm('modal-prev'); rPartidas(); toast(data.length+' partidas importadas');
+    };
+    showPreview('Importar Catálogo de Partidas',data);
+  });
+  input.value='';
+}
+function exportPlantillaPartidas(){
+  const rows=[['Codigo','Nombre','Cuenta','ctaId']];
+  [...partidas].sort((a,b)=>a.cod.localeCompare(b.cod,'es',{numeric:true})).forEach(p=>{
+    const cta=ctasContables.find(c=>c.id===p.ctaId);
+    rows.push([p.cod,p.nom,cta?cta.cod:'',p.ctaId]);
+  });
+  dlExcel(rows,'catalogo_partidas');
+}
+
+// ============= ÁREAS =============
+function rAreas(){
+  document.getElementById('tbody-areas').innerHTML=areas.map((a,i)=>{
+    const gastos=(asignaciones['GASTOS']||{})[a.id]||[];
+    const invers=(asignaciones['INVERSION']||{})[a.id]||[];
+    const total=new Set([...gastos,...invers]).size;
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="font-weight:700">${a.nom}</td>
+      <td>${a.res}</td>
+      <td style="font-size:12px;color:var(--muted)">${total} partidas asignadas</td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="openModalAsig('area',${a.id})">Asignar partidas</button>
+        <button class="btn btn-xs btn-ghost" style="margin-left:4px" onclick="editArea(${a.id})">Editar</button>
+        <button class="btn btn-xs" style="background:var(--bg);color:var(--red);border:none;cursor:pointer;margin-left:4px" onclick="delArea(${a.id})">&#10005;</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function openModalArea(id){
+  const a=id?areas.find(x=>x.id===id):null;
+  document.getElementById('ma-nom').value=a?a.nom:'';
+  document.getElementById('ma-res').value=a?a.res:'';
+  document.getElementById('modal-area').dataset.eid=id||'';
+  document.getElementById('modal-area').classList.remove('hidden');
+}
+function editArea(id){openModalArea(id);}
+function guardarArea(){
+  const nom=document.getElementById('ma-nom').value.trim();
+  const res=document.getElementById('ma-res').value.trim();
+  if(!nom||!res){alert('Completa los campos');return;}
+  const eid=parseInt(document.getElementById('modal-area').dataset.eid||'0');
+  if(eid){const a=areas.find(x=>x.id===eid);if(a){a.nom=nom;a.res=res;}}
+  else areas.push({id:sigIdArea++,nom,res});
+  cm('modal-area'); rAreas(); toast('Departamento guardado');
+}
+function delArea(id){if(!confirm('Eliminar?'))return; areas=areas.filter(a=>a.id!==id); rAreas();}
+
+// ============= PROYECTOS =============
+function rProy(){
+  const sel=document.getElementById('mpy-area');
+  sel.innerHTML=areas.map(a=>`<option value="${a.id}">${a.nom}</option>`).join('');
+  document.getElementById('tbody-proyectos').innerHTML=proyectos.map(p=>{
+    const a=areas.find(x=>x.id===p.areaId);
+    const estColor={activo:'b-open',pausado:'b-bor',cerrado:'b-closed'}[p.est]||'b-sin';
+    const nAsig=((asignaciones['PROYECTO']||{})[p.id]||[]).length;
+    return `<tr>
+      <td><code style="font-family:monospace;font-size:12px">${p.cod}</code></td>
+      <td style="font-weight:700">${p.nom}</td>
+      <td style="font-size:12px;color:var(--muted)">${a?a.nom:'—'}</td>
+      <td>${p.res}</td>
+      <td style="font-size:12px;color:var(--muted)">${p.ini||'—'} → ${p.fin||'—'}</td>
+      <td><span class="badge ${estColor}">${p.est.toUpperCase()}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${nAsig} partidas</td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="openModalAsig('proyecto',${p.id})">Asignar partidas</button>
+        <button class="btn btn-xs btn-ghost" style="margin-left:4px" onclick="editProy(${p.id})">Editar</button>
+        <button class="btn btn-xs" style="background:var(--bg);color:var(--red);border:none;cursor:pointer;margin-left:4px" onclick="delProy(${p.id})">&#10005;</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function openModalProy(id){
+  rProy();
+  const p=id?proyectos.find(x=>x.id===id):null;
+  document.getElementById('mpy-title').textContent=id?'Editar Proyecto':'Nuevo Proyecto';
+  document.getElementById('mpy-cod').value=p?p.cod:'';
+  document.getElementById('mpy-nom').value=p?p.nom:'';
+  document.getElementById('mpy-res').value=p?p.res:'';
+  document.getElementById('mpy-ini').value=p?p.ini:'';
+  document.getElementById('mpy-fin').value=p?p.fin:'';
+  document.getElementById('mpy-est').value=p?p.est:'activo';
+  if(p)document.getElementById('mpy-area').value=p.areaId;
+  document.getElementById('modal-proy').dataset.eid=id||'';
+  document.getElementById('modal-proy').classList.remove('hidden');
+}
+function editProy(id){openModalProy(id);}
+function guardarProy(){
+  const cod=document.getElementById('mpy-cod').value.trim();
+  const nom=document.getElementById('mpy-nom').value.trim();
+  const res=document.getElementById('mpy-res').value.trim();
+  if(!cod||!nom||!res){alert('Completa código, nombre y responsable');return;}
+  const eid=parseInt(document.getElementById('modal-proy').dataset.eid||'0');
+  const d={cod,nom,res,areaId:parseInt(document.getElementById('mpy-area').value),ini:document.getElementById('mpy-ini').value,fin:document.getElementById('mpy-fin').value,est:document.getElementById('mpy-est').value};
+  if(eid){const p=proyectos.find(x=>x.id===eid);if(p)Object.assign(p,d);}
+  else proyectos.push({id:sigIdPry++,...d});
+  cm('modal-proy'); rProy(); toast('Proyecto guardado');
+}
+function delProy(id){if(!confirm('Eliminar?'))return; proyectos=proyectos.filter(p=>p.id!==id); rProy();}
+
+// ============= ASIGNACIÓN DE PARTIDAS =============
+function openModalAsig(ent, entId){
+  asigCtx.ent=ent; asigCtx.entId=entId;
+  const entObj=ent==='area' ? areas.find(a=>a.id===entId) : proyectos.find(p=>p.id===entId);
+  document.getElementById('masig-title').textContent='Asignar Partidas — '+(entObj?.nom||'');
+  document.getElementById('masig-sub').textContent=ent==='area'?'Selecciona las partidas que maneja este departamento por tipo de presupuesto':'Selecciona las partidas que aplican a este proyecto';
+  const tiposRel=tipos.filter(t=>t.ent===ent);
+  asigCtx.tipoCod=tiposRel[0]?.codigo||null;
+  renderMasigTipos(tiposRel);
+  renderMasigChecklist();
+  document.getElementById('modal-asig').classList.remove('hidden');
+}
+function renderMasigTipos(tiposRel){
+  document.getElementById('masig-tipos').innerHTML=tiposRel.map(t=>
+    `<button class="btn btn-sm ${asigCtx.tipoCod===t.codigo?'btn-primary':'btn-ghost'}"
+      style="${asigCtx.tipoCod===t.codigo?'background:'+t.color+';border-color:'+t.color:''}"
+      onclick="setMasigTipo('${t.codigo}')">${t.ico} ${t.nombre}</button>`
+  ).join('');
+}
+function setMasigTipo(tc){
+  asigCtx.tipoCod=tc;
+  const tiposRel=tipos.filter(t=>t.ent===asigCtx.ent);
+  renderMasigTipos(tiposRel);
+  renderMasigChecklist();
+}
+function renderMasigChecklist(){
+  if(!asigCtx.tipoCod){document.getElementById('masig-body').innerHTML='';return;}
+  const assigned=new Set(((asignaciones[asigCtx.tipoCod]||{})[asigCtx.entId])||[]);
+  let html='';
+  ctasContables.forEach(cta=>{
+    const cparts=partidas.filter(p=>p.ctaId===cta.id).sort((a,b)=>a.cod.localeCompare(b.cod,'es',{numeric:true}));
+    if(!cparts.length)return;
+    const allChk=cparts.every(p=>assigned.has(p.id));
+    const nChk=cparts.filter(p=>assigned.has(p.id)).length;
+    html+=`<div style="margin-bottom:14px">
+      <div class="asig-cta-hdr">
+        <input type="checkbox" id="chkAll${cta.id}" ${allChk?'checked':''} onchange="toggleCtaAll(${cta.id},this.checked)">
+        <label for="chkAll${cta.id}" style="font-size:12px;font-weight:700;cursor:pointer;flex:1">
+          ${ctaBadge(cta)}${cta.nom}
+        </label>
+        <span style="font-size:11px;color:var(--muted)">${nChk}/${cparts.length}</span>
+      </div>
+      <div class="asig-parts-grid">
+        ${cparts.map(p=>`
+          <label class="chk-row" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 6px;border-radius:4px;cursor:pointer">
+            <input type="checkbox" class="part-chk" data-id="${p.id}" data-ctaid="${cta.id}" ${assigned.has(p.id)?'checked':''}
+              onchange="recalcCtaAll(${cta.id})">
+            <code style="font-size:10px;color:var(--muted);min-width:48px;flex-shrink:0">${p.cod}</code>
+            ${p.nom}
+          </label>`).join('')}
+      </div>
+    </div>`;
+  });
+  document.getElementById('masig-body').innerHTML=html;
+  updMasigCount();
+}
+function toggleCtaAll(ctaId, checked){
+  document.querySelectorAll(`.part-chk[data-ctaid="${ctaId}"]`).forEach(chk=>chk.checked=checked);
+  updMasigCount();
+}
+function recalcCtaAll(ctaId){
+  const all=partidas.filter(p=>p.ctaId===ctaId).every(p=>{
+    const chk=document.querySelector(`.part-chk[data-id="${p.id}"]`); return chk?.checked;
+  });
+  const el=document.getElementById('chkAll'+ctaId); if(el)el.checked=all;
+  updMasigCount();
+}
+function updMasigCount(){
+  const n=document.querySelectorAll('.part-chk:checked').length;
+  document.getElementById('masig-count').textContent=n+' partidas seleccionadas';
+}
+function guardarAsig(){
+  const tc=asigCtx.tipoCod; if(!tc)return;
+  const ids=[...document.querySelectorAll('.part-chk:checked')].map(c=>parseInt(c.dataset.id));
+  if(!asignaciones[tc])asignaciones[tc]={};
+  asignaciones[tc][asigCtx.entId]=ids;
+  cm('modal-asig');
+  toast('Asignación guardada — '+ids.length+' partidas');
+  // refresh tabla actual
+  if(document.getElementById('v-areas')&&!document.getElementById('v-areas').classList.contains('hidden'))rAreas();
+  if(document.getElementById('v-proyectos')&&!document.getElementById('v-proyectos').classList.contains('hidden'))rProy();
+}
+
+// ============= INGRESAR =============
+function rIngresar(){
+  const pa=pact();
+  document.getElementById('v-ing-tipo').classList.remove('hidden');
+  document.getElementById('v-ing-ent').classList.add('hidden');
+  document.getElementById('v-ing-grid').classList.add('hidden');
+  const info=document.getElementById('ing-per-info');
+  if(!pa){
+    info.innerHTML='<div class="warn-box">No hay un período abierto. El administrador debe ir a <strong>Apertura General</strong> y abrir un período.</div>';
+    document.getElementById('ing-tipos-grid').innerHTML=''; return;
+  }
+  info.innerHTML=`<div class="info-box" style="margin-bottom:18px">
+    <strong>Período abierto: ${pa.anio}</strong> — ${pa.desc}
+    ${pa.lim?' &nbsp;|&nbsp; Límite: <strong>'+pa.lim+'</strong>':''}
+    ${pa.obs?'<br>'+pa.obs:''}
+  </div>`;
+  const tiposAct=tipos.filter(t=>pa.tipos.includes(t.codigo));
+  const tarjetas=tiposAct.map(t=>{
+    const ents=getEntsVisibles(t.codigo);
+    if(!ents.length)return ''; // el usuario no tiene acceso a ninguna entidad de este tipo
+    const env=ents.filter(e=>['env','apr1','apr2'].includes(getEst(pa.id,t.codigo,e.id))).length;
+    const tot=ents.reduce((s,e)=>s+totalEnt(pa.id,t.codigo,e.id),0);
+    return `<div class="tipo-card" onclick="selTipo('${t.codigo}')">
+      <div class="tipo-icon" style="background:${t.color}22;color:${t.color}">${t.ico}</div>
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px">${t.nombre}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${t.desc}</div>
+      <div style="background:var(--bg);border-radius:6px;padding:10px;text-align:center;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted)">${t.ent==='proyecto'?'Proyectos':'Departamentos'}</div>
+        <div style="font-size:19px;font-weight:800;color:var(--blue)">${ents.length}</div>
+        <div style="font-size:11px;color:var(--muted)">${env} enviados</div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:${tot>0?'var(--blue)':'var(--muted)'}">${tot>0?fmt(tot):'Sin montos aún'}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+  document.getElementById('ing-tipos-grid').innerHTML=tarjetas||
+    '<div class="warn-box">No tienes departamentos asignados para este período. Contacta al Jefe de Presupuesto.</div>';
+}
+function selTipo(tipCod){
+  const pa=pact(); if(!pa)return;
+  st.perId=pa.id; st.tipoCod=tipCod;
+  const t=getTipo(tipCod);
+  document.getElementById('v-ing-tipo').classList.add('hidden');
+  document.getElementById('v-ing-ent').classList.remove('hidden');
+  document.getElementById('ing-tipo-titulo').textContent=t.ico+' '+t.nombre;
+  document.getElementById('ing-tipo-sub').textContent=t.desc+' — Período '+pa.anio;
+  const ents=getEntsVisibles(tipCod);
+  document.getElementById('ing-ent-grid').innerHTML=ents.map(e=>{
+    const eid=e.id, est=getEst(pa.id,tipCod,eid), tot=totalEnt(pa.id,tipCod,eid);
+    const [bc,bl]=bEst(est);
+    const sub=t.ent==='proyecto'?(areas.find(a=>a.id===e.areaId)||{nom:'—'}).nom:e.res;
+    const nParts=getPartidasEnt(tipCod,eid).length;
+    return `<div class="ent-card" onclick="selEnt(${eid})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div style="font-size:13px;font-weight:800">${e.nom||e.nombre}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${sub}</div></div>
+        <span class="badge ${bc}">${bl}</span>
+      </div>
+      <div style="background:var(--bg);border-radius:5px;padding:10px;text-align:center;margin-bottom:12px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted)">Total ${pa.anio}</div>
+        <div style="font-size:18px;font-weight:800;color:${tot>0?'var(--blue)':'var(--muted)'}">${tot>0?fmt(tot):'—'}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${nParts} partidas asignadas</div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="width:100%">${est==='sin'?'+ Aperturar':'Editar presupuesto'}</button>
+    </div>`;
+  }).join('');
+}
+function backToTipos(){
+  document.getElementById('v-ing-tipo').classList.remove('hidden');
+  document.getElementById('v-ing-ent').classList.add('hidden');
+  rIngresar();
+}
+function selEnt(eid){
+  st.entId=eid;
+  const per=periodos.find(p=>p.id===st.perId);
+  const t=getTipo(st.tipoCod);
+  const ent=getEnt(st.tipoCod,eid);
+  const entNombre=ent.nom||ent.nombre||'';
+  const sub=t.ent==='proyecto'?(areas.find(a=>a.id===ent.areaId)||{nom:'—'}).nom:ent.res;
+  document.getElementById('g-titulo').textContent=entNombre;
+  document.getElementById('g-sub').textContent=sub+' — Presupuesto '+per.anio;
+  document.getElementById('t-per').textContent=per.anio+' — '+per.desc;
+  const pill=document.getElementById('g-tipo-pill');
+  pill.style.background=t.color+'22'; pill.style.color=t.color; pill.style.border='1px solid '+t.color+'44';
+  pill.textContent=t.ico+' '+t.nombre;
+  const est=getEst(st.perId,st.tipoCod,eid);
+  const [bc,bl]=bEst(est);
+  const b=document.getElementById('g-badge'); b.className='badge '+bc; b.textContent=bl;
+  const editable=canEdit(st.perId,st.tipoCod,eid);
+  const submitOk=canSubmit(st.perId,st.tipoCod,eid);
+  document.getElementById('btn-borrador').disabled=!editable;
+  document.getElementById('btn-enviar').disabled=!submitOk;
+  document.getElementById('btn-repro').style.display=editable?'':'none';
+  document.getElementById('v-ing-ent').classList.add('hidden');
+  document.getElementById('v-ing-grid').classList.remove('hidden');
+  renderApprovalBar();
+  renderVersionBadge();
+  renderGrid();
+}
+function backToEnt(){
+  document.getElementById('v-ing-ent').classList.remove('hidden');
+  document.getElementById('v-ing-grid').classList.add('hidden');
+  selTipo(st.tipoCod);
+}
+
+// ============= GRID PRESUPUESTO =============
+function renderGrid(){
+  const parts=getPartidasEnt(st.tipoCod, st.entId);
+  const lock=!canEdit(st.perId,st.tipoCod,st.entId);
+  const tbody=document.getElementById('pg-body');
+  tbody.innerHTML='';
+  if(!parts.length){
+    const tr=tbody.insertRow();
+    tr.innerHTML=`<td colspan="15" style="text-align:center;padding:24px;color:var(--muted)">
+      Sin partidas asignadas. Ve a <strong>Departamentos</strong> o <strong>Proyectos</strong> y usa "Asignar partidas" para configurar las líneas de este presupuesto.
+    </td>`;
+    renderTotRow(); updSum();
+    document.getElementById('t-ctas').textContent='0 partidas';
+    return;
+  }
+  // agrupar por cuenta contable
+  const ctasUsadas=[...new Set(parts.map(p=>p.ctaId))]
+    .map(id=>ctasContables.find(c=>c.id===id)).filter(Boolean)
+    .sort((a,b)=>a.cod.localeCompare(b.cod));
+  ctasUsadas.forEach(cta=>{
+    const cparts=parts.filter(p=>p.ctaId===cta.id);
+    const trH=tbody.insertRow(); trH.className='gh';
+    trH.innerHTML=`<td class="cc">${ctaBadge(cta)}${cta.nom}</td><td class="cd"></td>${Array(13).fill('<td></td>').join('')}`;
+    cparts.forEach(p=>{
+      const tr=tbody.insertRow();
+      let row=`<td class="cc">${p.nom}</td><td class="cd"><code style="font-size:11px">${p.cod}</code></td>`;
+      let rt=0;
+      for(let m=0;m<12;m++){
+        const v=getPp(st.perId,st.tipoCod,st.entId,p.id,m); rt+=v;
+        row+=`<td><input class="ci" type="number" min="0" step="0.01" value="${v||''}" placeholder="0"
+          ${lock?'disabled':''} oninput="celda(${p.id},${m},this.value)" onfocus="this.select()"></td>`;
+      }
+      row+=`<td><div class="cro" id="rt${p.id}">${fmtN(rt)}</div></td>`;
+      tr.innerHTML=row;
+    });
+    // subtotal row por grupo
+    const trS=tbody.insertRow(); trS.className='gst';
+    let stRow=`<td class="cc">&#8627; Subtotal ${cta.cod}</td><td class="cd"></td>`;
+    let stTot=0;
+    for(let m=0;m<12;m++){
+      const sm=cparts.reduce((s,p)=>s+getPp(st.perId,st.tipoCod,st.entId,p.id,m),0); stTot+=sm;
+      stRow+=`<td style="text-align:right;padding:5px 6px" id="gst${cta.id}m${m}">${fmtN(sm)||'—'}</td>`;
+    }
+    stRow+=`<td style="text-align:right;padding:5px 6px;color:var(--blue)" id="gstT${cta.id}">${fmtN(stTot)}</td>`;
+    trS.innerHTML=stRow;
+  });
+  renderTotRow(); updSum();
+  document.getElementById('t-ctas').textContent=parts.length+' partidas';
+}
+function celda(pid,m,v){
+  setPp(st.perId,st.tipoCod,st.entId,pid,m,parseFloat(v)||0);
+  const rt=Array.from({length:12},(_,i)=>getPp(st.perId,st.tipoCod,st.entId,pid,i)).reduce((s,x)=>s+x,0);
+  const el=document.getElementById('rt'+pid); if(el)el.textContent=fmtN(rt);
+  // actualizar subtotal del grupo
+  const p=partidas.find(x=>x.id===pid);
+  if(p){
+    const cta=ctasContables.find(c=>c.id===p.ctaId);
+    if(cta){
+      const cparts=getPartidasEnt(st.tipoCod,st.entId).filter(x=>x.ctaId===cta.id);
+      let stTot=0;
+      for(let i=0;i<12;i++){
+        const sm=cparts.reduce((s,x)=>s+getPp(st.perId,st.tipoCod,st.entId,x.id,i),0); stTot+=sm;
+        const ec=document.getElementById(`gst${cta.id}m${i}`); if(ec)ec.textContent=fmtN(sm)||'—';
+      }
+      const eT=document.getElementById(`gstT${cta.id}`); if(eT)eT.textContent=fmtN(stTot);
+    }
+  }
+  renderTotRow(); updSum();
+}
+function renderTotRow(){
+  const parts=getPartidasEnt(st.tipoCod, st.entId);
+  const tf=document.getElementById('pg-foot');
+  let row='<tr><td class="cc" style="font-size:13px;font-weight:700">TOTAL MENSUAL</td><td class="cd"></td>';
+  let gran=0;
+  for(let m=0;m<12;m++){
+    const tm=parts.reduce((s,p)=>s+getPp(st.perId,st.tipoCod,st.entId,p.id,m),0); gran+=tm;
+    row+=`<td style="text-align:right;font-weight:700;font-size:12px">${fmtN(tm)}</td>`;
+  }
+  row+=`<td style="text-align:right;font-weight:800;font-size:13px;color:var(--blue)">${fmtN(gran)}</td></tr>`;
+  tf.innerHTML=row;
+}
+function updSum(){ document.getElementById('t-tot').textContent=fmt(totalEnt(st.perId,st.tipoCod,st.entId)); }
+function guardarBorrador(){
+  setEst(st.perId,st.tipoCod,st.entId,'bor');
+  const b=document.getElementById('g-badge'); b.className='badge b-bor'; b.textContent='Borrador';
+  logApro(st.perId,st.tipoCod,st.entId,'bor','');
+  toast('Borrador guardado');
+}
+function enviarPpto(){
+  if(totalEnt(st.perId,st.tipoCod,st.entId)===0){alert('El presupuesto no puede ser cero.');return;}
+  if(!confirm('Enviar para aprobación por el Jefe de Departamento?'))return;
+  setEst(st.perId,st.tipoCod,st.entId,'env');
+  logApro(st.perId,st.tipoCod,st.entId,'env','');
+  const b=document.getElementById('g-badge'); b.className='badge b-env'; b.textContent='Enviado — Pend. Jefe';
+  document.getElementById('btn-borrador').disabled=true;
+  document.getElementById('btn-enviar').disabled=true;
+  document.getElementById('btn-repro').style.display='none';
+  renderApprovalBar();
+  renderGrid();
+  toast('Presupuesto enviado para aprobación de Jefe de Departamento');
+  setTimeout(backToEnt,1800);
+}
+
+// ============= EXCEL =============
+function importPpto(input){
+  if(!input.files[0])return;
+  leerExcel(input.files[0],data=>{
+    prevCb=()=>{
+      const parts=getPartidasEnt(st.tipoCod,st.entId); let cnt=0;
+      data.forEach(r=>{
+        const busq=String(r['Codigo']||r['Código']||r['codigo']||'').trim();
+        const bnom=String(r['Partida']||r['Nombre']||'').trim();
+        const p=parts.find(x=>x.cod===busq||(bnom&&x.nom.toLowerCase()===bnom.toLowerCase()));
+        if(!p)return;
+        MESES_FULL.forEach((mes,m)=>{ const v=parseFloat(r[mes]||r[MESES[m]]||r[mes.toLowerCase()]||0)||0; setPp(st.perId,st.tipoCod,st.entId,p.id,m,v); });
+        cnt++;
+      });
+      cm('modal-prev'); renderGrid(); toast(cnt+' partidas importadas');
+    };
+    showPreview('Importar presupuesto',data);
+  });
+  input.value='';
+}
+function exportPlantillaPpto(){
+  const parts=getPartidasEnt(st.tipoCod,st.entId);
+  const rows=[['Codigo','Partida','CuentaContable',...MESES_FULL,'Total']];
+  parts.forEach(p=>{
+    const cta=ctasContables.find(c=>c.id===p.ctaId);
+    const ms=Array.from({length:12},(_,m)=>getPp(st.perId,st.tipoCod,st.entId,p.id,m));
+    rows.push([p.cod,p.nom,cta?cta.cod:'',...ms,ms.reduce((s,v)=>s+v,0)]);
+  });
+  const en=getEnt(st.tipoCod,st.entId), per=periodos.find(p=>p.id===st.perId), t=getTipo(st.tipoCod);
+  dlExcel(rows,'ppto_'+t.codigo+'_'+(en.nom||en.nombre||'').replace(/[\/\s]/g,'_')+'_'+per.anio);
+}
+
+function leerExcel(file,cb){
+  const r=new FileReader();
+  r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'binary'}); cb(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}));}catch(err){alert('Error: '+err.message);}};
+  r.readAsBinaryString(file);
+}
+function dlExcel(rows,nom){
+  const ws=XLSX.utils.aoa_to_sheet(rows), wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Datos'); XLSX.writeFile(wb,nom+'.xlsx');
+}
+function showPreview(titulo,data){
+  if(!data.length){alert('Archivo vacío');return;}
+  document.getElementById('prev-t').textContent=titulo+' — '+data.length+' registros';
+  document.getElementById('prev-info').textContent='Primeros 15 registros. Confirma para aplicar.';
+  const keys=Object.keys(data[0]);
+  document.getElementById('prev-head').innerHTML='<tr>'+keys.map(k=>`<th>${k}</th>`).join('')+'</tr>';
+  document.getElementById('prev-body').innerHTML=data.slice(0,15).map(r=>'<tr>'+keys.map(k=>`<td style="font-size:12px;padding:7px 11px;white-space:nowrap">${r[k]}</td>`).join('')+'</tr>').join('');
+  document.getElementById('prev-ok').onclick=()=>{ prevCb&&prevCb(); };
+  document.getElementById('modal-prev').classList.remove('hidden');
+}
+
+// ============= REALES =============
+function rReales(){
+  const pa=pact();
+  document.getElementById('v-real-tipo').classList.remove('hidden');
+  document.getElementById('v-real-ent').classList.add('hidden');
+  document.getElementById('v-real-grid').classList.add('hidden');
+  const info=document.getElementById('real-per-info');
+  if(!pa){info.innerHTML='<div class="warn-box">No hay período abierto.</div>';document.getElementById('real-tipos-grid').innerHTML='';return;}
+  info.innerHTML=`<div class="info-box" style="margin-bottom:18px"><strong>Período: ${pa.anio}</strong> — ${pa.desc}</div>`;
+  const tiposAct=tipos.filter(t=>pa.tipos.includes(t.codigo));
+  const tarjetasR=tiposAct.map(t=>{
+    const ents=getEntsVisibles(t.codigo);
+    if(!ents.length)return '';
+    const tot=ents.reduce((s,e)=>s+totalRealEnt(pa.id,t.codigo,e.id),0);
+    const ppto=ents.reduce((s,e)=>s+totalEnt(pa.id,t.codigo,e.id),0);
+    const pct=ppto>0?Math.round(tot/ppto*100):0;
+    return `<div class="tipo-card" onclick="selRealTipo('${t.codigo}')">
+      <div class="tipo-icon" style="background:${t.color}22;color:${t.color}">${t.ico}</div>
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px">${t.nombre}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${t.desc}</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:var(--green);font-weight:700">Ejecutado: ${fmt(tot)}</span>
+        <span style="color:var(--muted)">${pct}%</span>
+      </div>
+      <div class="pbar"><div class="pfill" style="width:${Math.min(pct,100)}%;background:${pct>100?'var(--red)':'var(--green)'}"></div></div>
+    </div>`;
+  }).filter(Boolean).join('');
+  document.getElementById('real-tipos-grid').innerHTML=tarjetasR||
+    '<div class="warn-box">No tienes departamentos asignados. Contacta al Jefe de Presupuesto.</div>';
+}
+function selRealTipo(tipCod){
+  const pa=pact(); if(!pa)return;
+  stReal.perId=pa.id; stReal.tipoCod=tipCod;
+  const t=getTipo(tipCod);
+  document.getElementById('v-real-tipo').classList.add('hidden');
+  document.getElementById('v-real-ent').classList.remove('hidden');
+  document.getElementById('real-tipo-titulo').textContent=t.ico+' '+t.nombre;
+  document.getElementById('real-tipo-sub').textContent='Ejecutado real — Período '+pa.anio;
+  const ents=getEntsVisibles(tipCod);
+  document.getElementById('real-ent-grid').innerHTML=ents.map(e=>{
+    const eid=e.id;
+    const ppto=totalEnt(pa.id,tipCod,eid), real=totalRealEnt(pa.id,tipCod,eid);
+    const pct=ppto>0?Math.round(real/ppto*100):0;
+    const varColor=pct>100?'var(--red)':pct>=80?'var(--yellow)':'var(--green)';
+    return `<div class="ent-card" onclick="selRealEnt(${eid})">
+      <div style="font-size:13px;font-weight:800;margin-bottom:6px">${e.nom||e.nombre}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${e.res||''}</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span>Ppto: <strong style="color:var(--blue)">${fmt(ppto)}</strong></span>
+        <span>Real: <strong style="color:var(--green)">${fmt(real)}</strong></span>
+      </div>
+      <div class="pbar"><div class="pfill" style="width:${Math.min(pct,100)}%;background:${varColor}"></div></div>
+      <div style="text-align:right;font-size:11px;margin-top:4px;color:${varColor};font-weight:700">${pct}% ejecutado</div>
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:10px">Ingresar reales</button>
+    </div>`;
+  }).join('');
+}
+function backRealToTipos(){
+  document.getElementById('v-real-tipo').classList.remove('hidden');
+  document.getElementById('v-real-ent').classList.add('hidden');
+  rReales();
+}
+function selRealEnt(eid){
+  stReal.entId=eid;
+  const per=periodos.find(p=>p.id===stReal.perId);
+  const t=getTipo(stReal.tipoCod);
+  const ent=getEnt(stReal.tipoCod,eid);
+  document.getElementById('rg-titulo').textContent=ent.nom||ent.nombre||'';
+  document.getElementById('rg-sub').textContent=(ent.res||'')+' — Reales '+per.anio;
+  document.getElementById('rt-per').textContent=per.anio+' — '+per.desc;
+  const pill=document.getElementById('rg-tipo-pill');
+  pill.style.background=t.color+'22'; pill.style.color=t.color; pill.style.border='1px solid '+t.color+'44';
+  pill.textContent=t.ico+' '+t.nombre;
+  document.getElementById('v-real-ent').classList.add('hidden');
+  document.getElementById('v-real-grid').classList.remove('hidden');
+  renderRealGrid();
+}
+function backRealToEnt(){
+  document.getElementById('v-real-ent').classList.remove('hidden');
+  document.getElementById('v-real-grid').classList.add('hidden');
+  selRealTipo(stReal.tipoCod);
+}
+function renderRealGrid(){
+  const parts=getPartidasEnt(stReal.tipoCod,stReal.entId);
+  const tbody=document.getElementById('rg-body');
+  tbody.innerHTML='';
+  if(!parts.length){
+    tbody.innerHTML=`<tr><td colspan="15" style="text-align:center;padding:24px;color:var(--muted)">Sin partidas asignadas.</td></tr>`;
+    renderRealTotRow(); updRealSum(); return;
+  }
+  const ctasUsadas=[...new Set(parts.map(p=>p.ctaId))].map(id=>ctasContables.find(c=>c.id===id)).filter(Boolean).sort((a,b)=>a.cod.localeCompare(b.cod));
+  ctasUsadas.forEach(cta=>{
+    const cparts=parts.filter(p=>p.ctaId===cta.id);
+    const trH=tbody.insertRow(); trH.className='gh';
+    trH.innerHTML=`<td class="cc">${ctaBadge(cta)}${cta.nom}</td><td class="cd"></td>${Array(13).fill('<td></td>').join('')}`;
+    cparts.forEach(p=>{
+      const tr=tbody.insertRow();
+      let row=`<td class="cc">${p.nom}</td><td class="cd"><code style="font-size:11px">${p.cod}</code></td>`;
+      let rt=0;
+      for(let m=0;m<12;m++){
+        const rv=getReal(stReal.perId,stReal.tipoCod,stReal.entId,p.id,m);
+        const pv=getPp(stReal.perId,stReal.tipoCod,stReal.entId,p.id,m);
+        rt+=rv;
+        row+=`<td style="position:relative"><input class="ci ci-real" type="number" min="0" step="0.01" value="${rv||''}" placeholder="0"
+          oninput="celdaReal(${p.id},${m},this.value)" onfocus="this.select()" title="Ppto: ${fmtN(pv)}">
+          ${pv>0?`<div style="font-size:9px;color:var(--muted);text-align:right;line-height:1">P:${fmtN(pv)}</div>`:''}
+          </td>`;
+      }
+      row+=`<td><div class="cro" style="color:var(--green)" id="rtr${p.id}">${fmtN(rt)}</div></td>`;
+      tr.innerHTML=row;
+    });
+    // subtotal grupo reales
+    const trS=tbody.insertRow(); trS.className='gst';
+    let stRow=`<td class="cc">&#8627; Subtotal ${cta.cod}</td><td class="cd"></td>`;
+    let stTot=0;
+    for(let m=0;m<12;m++){
+      const sm=cparts.reduce((s,p)=>s+getReal(stReal.perId,stReal.tipoCod,stReal.entId,p.id,m),0); stTot+=sm;
+      stRow+=`<td style="text-align:right;padding:5px 6px;color:var(--green)">${fmtN(sm)||'—'}</td>`;
+    }
+    stRow+=`<td style="text-align:right;padding:5px 6px;color:var(--green);font-weight:700">${fmtN(stTot)}</td>`;
+    trS.innerHTML=stRow;
+  });
+  renderRealTotRow(); updRealSum();
+}
+function celdaReal(pid,m,v){
+  setReal(stReal.perId,stReal.tipoCod,stReal.entId,pid,m,parseFloat(v)||0);
+  const rt=Array.from({length:12},(_,i)=>getReal(stReal.perId,stReal.tipoCod,stReal.entId,pid,i)).reduce((s,x)=>s+x,0);
+  const el=document.getElementById('rtr'+pid); if(el)el.textContent=fmtN(rt);
+  renderRealTotRow(); updRealSum();
+}
+function renderRealTotRow(){
+  const parts=getPartidasEnt(stReal.tipoCod,stReal.entId);
+  const tf=document.getElementById('rg-foot');
+  let row='<tr><td class="cc" style="font-size:13px;font-weight:700">TOTAL EJECUTADO</td><td class="cd"></td>';
+  let gran=0;
+  for(let m=0;m<12;m++){
+    const tm=parts.reduce((s,p)=>s+getReal(stReal.perId,stReal.tipoCod,stReal.entId,p.id,m),0); gran+=tm;
+    row+=`<td style="text-align:right;font-weight:700;font-size:12px;color:var(--green)">${fmtN(tm)}</td>`;
+  }
+  row+=`<td style="text-align:right;font-weight:800;font-size:13px;color:var(--green)">${fmtN(gran)}</td></tr>`;
+  tf.innerHTML=row;
+}
+function updRealSum(){
+  const real=totalRealEnt(stReal.perId,stReal.tipoCod,stReal.entId);
+  const ppto=totalEnt(stReal.perId,stReal.tipoCod,stReal.entId);
+  const vari=real-ppto;
+  document.getElementById('rt-ejec').textContent=fmt(real);
+  document.getElementById('rt-ppto').textContent=fmt(ppto);
+  const ve=document.getElementById('rt-var');
+  ve.textContent=(vari>=0?'+':'')+fmt(vari);
+  ve.style.color=vari>0?'var(--red)':vari<0?'var(--green)':'var(--muted)';
+}
+function guardarReales(){
+  toast('Reales guardados ✓');
+  updRealSum();
+}
+
+// ============= REPROGRAMAR =============
+function openModalRepro(){
+  const parts=getPartidasEnt(st.tipoCod,st.entId);
+  if(!parts.length){alert('Sin partidas asignadas.');return;}
+  const sel=document.getElementById('rp-part');
+  sel.innerHTML=parts.map(p=>`<option value="${p.id}">${p.cod} — ${p.nom}</option>`).join('');
+  document.getElementById('rp-from').innerHTML=MESES.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  document.getElementById('rp-to').innerHTML=MESES.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  document.getElementById('rp-amt').value='';
+  document.getElementById('rp-just').value='';
+  renderReproMonths();
+  document.getElementById('modal-repro').classList.remove('hidden');
+}
+function renderReproMonths(){
+  const pid=parseInt(document.getElementById('rp-part').value);
+  let html='<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--muted)">Disponible por mes (Presupuesto − Ejecutado)</div>';
+  html+='<div class="repro-month-grid">';
+  for(let m=0;m<12;m++){
+    const pv=getPp(st.perId,st.tipoCod,st.entId,pid,m);
+    const rv=getReal(st.perId,st.tipoCod,st.entId,pid,m);
+    const disp=Math.max(0,pv-rv);
+    const pct=pv>0?Math.min(100,Math.round(rv/pv*100)):0;
+    html+=`<div class="repro-mc">
+      <div class="mc-nom">${MESES[m]}</div>
+      <div class="repro-bar"><div class="repro-fill" style="width:${pct}%"></div></div>
+      <div style="font-size:10px;margin-top:3px">Ppto: ${fmtN(pv)}</div>
+      <div class="mc-disp ${disp>0?'':'mc-zero'}">Disp: ${fmtN(disp)}</div>
+    </div>`;
+  }
+  html+='</div>';
+  document.getElementById('repro-months-wrap').innerHTML=html;
+  updReproDisp();
+}
+function updReproDisp(){
+  const pid=parseInt(document.getElementById('rp-part').value);
+  const from=parseInt(document.getElementById('rp-from').value);
+  const pv=getPp(st.perId,st.tipoCod,st.entId,pid,from);
+  const rv=getReal(st.perId,st.tipoCod,st.entId,pid,from);
+  const disp=Math.max(0,pv-rv);
+  document.getElementById('rp-disp-hint').textContent=
+    `Disponible en ${MESES[from]}: ${fmt(disp)} (Ppto ${fmt(pv)} − Ejecutado ${fmt(rv)})`;
+}
+function aplicarRepro(){
+  const pid=parseInt(document.getElementById('rp-part').value);
+  const from=parseInt(document.getElementById('rp-from').value);
+  const to=parseInt(document.getElementById('rp-to').value);
+  const amt=parseFloat(document.getElementById('rp-amt').value)||0;
+  const just=document.getElementById('rp-just').value.trim();
+  if(from===to){alert('Origen y destino deben ser diferentes.');return;}
+  if(amt<=0){alert('El monto debe ser mayor a 0.');return;}
+  if(!just){alert('La justificación es requerida.');return;}
+  const pv=getPp(st.perId,st.tipoCod,st.entId,pid,from);
+  const rv=getReal(st.perId,st.tipoCod,st.entId,pid,from);
+  const disp=Math.max(0,pv-rv);
+  if(amt>disp){alert(`No puedes mover más del disponible (${fmt(disp)}) en ${MESES[from]}.`);return;}
+  // aplicar movimiento
+  const vFrom=getPp(st.perId,st.tipoCod,st.entId,pid,from);
+  const vTo=getPp(st.perId,st.tipoCod,st.entId,pid,to);
+  setPp(st.perId,st.tipoCod,st.entId,pid,from,vFrom-amt);
+  setPp(st.perId,st.tipoCod,st.entId,pid,to,vTo+amt);
+  // registrar en historial
+  const p=partidas.find(x=>x.id===pid);
+  const ent=getEnt(st.tipoCod,st.entId);
+  repros.push({
+    id:sigIdRepro++, fecha:new Date().toISOString().split('T')[0],
+    perId:st.perId, tipoCod:st.tipoCod, entId:st.entId,
+    entNom:ent.nom||ent.nombre||'', partidaCod:p.cod, partidaNom:p.nom,
+    from, to, amt, just
+  });
+  cm('modal-repro');
+  renderGrid();
+  toast(`Reprogramación aplicada: ${fmt(amt)} de ${MESES[from]} → ${MESES[to]}`);
+}
+
+// ============= REPORTES =============
+let repTab='resumen';
+function setRepTab(t){
+  repTab=t;
+  document.querySelectorAll('.rep-tab').forEach((el,i)=>{
+    el.classList.toggle('active',['resumen','rvp','repros'][i]===t);
+  });
+  document.querySelectorAll('.rep-body').forEach(el=>el.classList.remove('active'));
+  document.getElementById('rep-'+t).classList.add('active');
+  renderRepTab();
+}
+function rReportes(){
+  // poblar filtros
+  const selPer=document.getElementById('rp-per');
+  const selTipo=document.getElementById('rp-tipo');
+  const selEnt=document.getElementById('rp-ent');
+  if(periodos.length){
+    selPer.innerHTML=periodos.map(p=>`<option value="${p.id}">${p.anio} — ${p.desc}</option>`).join('');
+    if(!selPer.value)selPer.value=periodos[0].id;
+  }
+  selTipo.innerHTML=tipos.map(t=>`<option value="${t.codigo}">${t.ico} ${t.nombre}</option>`).join('');
+  updRepEntFilter();
+  renderRepTab();
+}
+function updRepEntFilter(){
+  const tc=document.getElementById('rp-tipo').value;
+  const t=getTipo(tc);
+  const ents=t?getEnts(tc):[];
+  document.getElementById('rp-ent').innerHTML=`<option value="">— Todas —</option>`+ents.map(e=>`<option value="${e.id}">${e.nom||e.nombre}</option>`).join('');
+}
+function renderRepTab(){
+  if(repTab==='resumen')renderResumen();
+  else if(repTab==='rvp')renderRvP();
+  else renderRepros();
+}
+function getRepCtx(){
+  const perId=parseInt(document.getElementById('rp-per').value)||0;
+  const tipoCod=document.getElementById('rp-tipo').value;
+  const entIdStr=document.getElementById('rp-ent').value;
+  const entId=entIdStr?parseInt(entIdStr):null;
+  const per=periodos.find(p=>p.id===perId);
+  const t=getTipo(tipoCod);
+  const ents=entId?[getEnt(tipoCod,entId)]:getEnts(tipoCod);
+  return {perId,tipoCod,entId,per,t,ents};
+}
+function renderResumen(){
+  const {perId,tipoCod,ents,per,t}=getRepCtx();
+  if(!per||!t){document.getElementById('rep-resumen').innerHTML='<div class="warn-box">Selecciona período y tipo.</div>';return;}
+  const insights=[];
+  // 1. Total presupuesto
+  const totPpto=ents.reduce((s,e)=>s+totalEnt(perId,tipoCod,e.id),0);
+  const totReal=ents.reduce((s,e)=>s+totalRealEnt(perId,tipoCod,e.id),0);
+  const pctEjec=totPpto>0?Math.round(totReal/totPpto*100):0;
+  // 2. Top cuentas contables por presupuesto
+  const porCta={};
+  ents.forEach(e=>{
+    getPartidasEnt(tipoCod,e.id).forEach(p=>{
+      const tot=Array.from({length:12},(_,m)=>getPp(perId,tipoCod,e.id,p.id,m)).reduce((s,v)=>s+v,0);
+      porCta[p.ctaId]=(porCta[p.ctaId]||0)+tot;
+    });
+  });
+  const topCtas=Object.entries(porCta).map(([id,v])=>({cta:ctasContables.find(c=>c.id==id),v}))
+    .filter(x=>x.cta&&x.v>0).sort((a,b)=>b.v-a.v).slice(0,5);
+  // 3. Distribución Q1/Q2/Q3/Q4
+  const porQ=[0,0,0,0];
+  ents.forEach(e=>{
+    getPartidasEnt(tipoCod,e.id).forEach(p=>{
+      for(let m=0;m<12;m++) porQ[Math.floor(m/3)]+=getPp(perId,tipoCod,e.id,p.id,m);
+    });
+  });
+  const qMax=Math.max(...porQ); const qMaxIdx=porQ.indexOf(qMax);
+  const qNom=['Q1 (Ene-Mar)','Q2 (Abr-Jun)','Q3 (Jul-Sep)','Q4 (Oct-Dic)'];
+  // 4. Meses con sobre-ejecución
+  const mesesAlerta=[];
+  for(let m=0;m<12;m++){
+    const mp=ents.reduce((s,e)=>s+getPartidasEnt(tipoCod,e.id).reduce((ss,p)=>ss+getPp(perId,tipoCod,e.id,p.id,m),0),0);
+    const mr=ents.reduce((s,e)=>s+getPartidasEnt(tipoCod,e.id).reduce((ss,p)=>ss+getReal(perId,tipoCod,e.id,p.id,m),0),0);
+    if(mp>0&&mr>mp)mesesAlerta.push({mes:MESES_FULL[m],ppt:mp,real:mr,exceso:mr-mp});
+  }
+  // 5. Entidades sin apertura
+  const sinApert=ents.filter(e=>getEst(perId,tipoCod,e.id)==='sin');
+  // generar HTML
+  let html=`<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px">
+    <div class="scard" style="min-width:140px"><div class="lbl">Presupuesto total</div><div class="val" style="color:var(--blue);font-size:18px">${fmt(totPpto)}</div><div class="hnt">${per.anio} ${t.ico} ${t.nombre}</div></div>
+    <div class="scard" style="min-width:140px"><div class="lbl">Ejecutado</div><div class="val" style="color:var(--green);font-size:18px">${fmt(totReal)}</div><div class="hnt">${pctEjec}% del presupuesto</div></div>
+    <div class="scard" style="min-width:140px"><div class="lbl">Disponible</div><div class="val" style="color:${totPpto-totReal<0?'var(--red)':'var(--muted)'};font-size:18px">${fmt(totPpto-totReal)}</div><div class="hnt">Saldo sin ejecutar</div></div>
+  </div>`;
+  // top cuentas
+  if(topCtas.length){
+    html+=`<div class="insight-box"><h4>&#128200; Top cuentas por presupuesto asignado</h4><ul>`;
+    topCtas.forEach(({cta,v})=>{
+      const pct=totPpto>0?Math.round(v/totPpto*100):0;
+      html+=`<li>${ctaBadge(cta)} <strong>${cta.nom}</strong> — ${fmt(v)} <span style="color:var(--muted)">(${pct}%)</span></li>`;
+    });
+    html+='</ul></div>';
+  }
+  // distribución trimestral
+  html+=`<div class="insight-box"><h4>&#128197; Distribución trimestral</h4><ul>`;
+  porQ.forEach((v,i)=>{
+    const pct=totPpto>0?Math.round(v/totPpto*100):0;
+    html+=`<li>${qNom[i]}: <strong>${fmt(v)}</strong> (${pct}%)${i===qMaxIdx?' &#9650; mayor concentración':''}</li>`;
+  });
+  if(qMaxIdx===0||qMaxIdx===3) html+=`<li style="color:var(--yellow)">&#9888; Concentración en ${qNom[qMaxIdx]} — considera redistribuir hacia meses centrales para facilitar la ejecución.</li>`;
+  html+='</ul></div>';
+  // alertas sobre-ejecución
+  if(mesesAlerta.length){
+    html+=`<div class="insight-box insight-alerta"><h4>&#128680; Sobre-ejecución detectada</h4><ul>`;
+    mesesAlerta.forEach(x=>{
+      html+=`<li><strong>${x.mes}</strong>: ejecutado ${fmt(x.real)} vs presupuesto ${fmt(x.ppt)} — exceso ${fmt(x.exceso)}</li>`;
+    });
+    html+='</ul></div>';
+  }
+  // sin apertura
+  if(sinApert.length){
+    html+=`<div class="insight-box" style="border-left-color:var(--yellow);background:#FFF7D6"><h4 style="color:#974F0C">&#128203; Entidades sin apertura</h4><ul>`;
+    sinApert.forEach(e=>{ html+=`<li>${e.nom||e.nombre}</li>`; });
+    html+='</ul></div>';
+  }
+  // conclusión
+  const concl=totPpto===0
+    ? 'No hay montos presupuestados aún para este período y tipo.'
+    : pctEjec===0
+      ? `El presupuesto de ${fmt(totPpto)} está aperturado pero sin ejecución real registrada.`
+      : `Se ha ejecutado el ${pctEjec}% del presupuesto (${fmt(totReal)} de ${fmt(totPpto)}). ${mesesAlerta.length?'Existen '+mesesAlerta.length+' mes(es) con sobre-ejecución que requieren revisión.':'La ejecución está dentro de los límites presupuestados.'}`;
+  html+=`<div class="insight-box" style="background:#F4F5F7;border-left-color:var(--muted)"><h4 style="color:var(--text)">&#128172; Conclusión</h4><p style="font-size:13px;line-height:1.7">${concl}</p></div>`;
+  document.getElementById('rep-resumen').innerHTML=html;
+}
+function renderRvP(){
+  const {perId,tipoCod,ents,per,t}=getRepCtx();
+  if(!per||!t){document.getElementById('rep-rvp').innerHTML='<div class="warn-box">Selecciona período y tipo.</div>';return;}
+  let html=`<div class="tw"><div class="tbar"><h3>Real vs Presupuesto — ${per.anio} ${t.ico} ${t.nombre}</h3></div>
+  <div style="overflow-x:auto"><table class="dt" style="min-width:900px">
+  <thead><tr><th>Cuenta / Partida</th><th>Entidad</th>`;
+  for(let m=0;m<12;m++) html+=`<th style="text-align:right">${MESES[m]}</th>`;
+  html+=`<th style="text-align:right">Total</th></tr></thead><tbody>`;
+  ents.forEach(e=>{
+    const parts=getPartidasEnt(tipoCod,e.id);
+    if(!parts.length)return;
+    const ctasU=[...new Set(parts.map(p=>p.ctaId))].map(id=>ctasContables.find(c=>c.id===id)).filter(Boolean).sort((a,b)=>a.cod.localeCompare(b.cod));
+    ctasU.forEach(cta=>{
+      const cparts=parts.filter(p=>p.ctaId===cta.id);
+      // fila grupo
+      html+=`<tr style="background:#F0F4FF"><td colspan="2" style="font-weight:700;padding:7px 13px">${ctaBadge(cta)}${cta.nom}</td>`;
+      let gtotP=0,gtotR=0;
+      for(let m=0;m<12;m++){
+        const mp=cparts.reduce((s,p)=>s+getPp(perId,tipoCod,e.id,p.id,m),0);
+        const mr=cparts.reduce((s,p)=>s+getReal(perId,tipoCod,e.id,p.id,m),0);
+        gtotP+=mp; gtotR+=mr;
+        const pct=mp>0?Math.round(mr/mp*100):0;
+        const col=mr>mp?'var(--red)':mr>0?'var(--green)':'var(--muted)';
+        html+=`<td style="text-align:right;padding:6px 13px;font-size:11px">
+          <div style="color:var(--blue)">${fmtN(mp)}</div>
+          <div style="color:${col};font-weight:700">${fmtN(mr)}</div>
+          ${mp>0?`<div style="color:var(--muted);font-size:10px">${pct}%</div>`:''}
+        </td>`;
+      }
+      const pctT=gtotP>0?Math.round(gtotR/gtotP*100):0;
+      const colT=gtotR>gtotP?'var(--red)':gtotR>0?'var(--green)':'var(--muted)';
+      html+=`<td style="text-align:right;padding:6px 13px;font-size:11px">
+        <div style="color:var(--blue);font-weight:700">${fmtN(gtotP)}</div>
+        <div style="color:${colT};font-weight:700">${fmtN(gtotR)}</div>
+        <div style="color:var(--muted);font-size:10px">${pctT}%</div>
+      </td></tr>`;
+    });
+  });
+  // total general
+  let totP=0,totR=0;
+  const mTots=Array(12).fill(0).map(()=>({p:0,r:0}));
+  ents.forEach(e=>{
+    getPartidasEnt(tipoCod,e.id).forEach(p=>{
+      for(let m=0;m<12;m++){
+        mTots[m].p+=getPp(perId,tipoCod,e.id,p.id,m);
+        mTots[m].r+=getReal(perId,tipoCod,e.id,p.id,m);
+      }
+    });
+  });
+  mTots.forEach(x=>{totP+=x.p;totR+=x.r;});
+  html+=`<tr style="background:#EDF2FF;font-weight:700"><td colspan="2" style="padding:8px 13px">TOTAL GENERAL</td>`;
+  mTots.forEach(x=>{
+    const col=x.r>x.p?'var(--red)':x.r>0?'var(--green)':'var(--muted)';
+    html+=`<td style="text-align:right;padding:6px 13px;font-size:12px">
+      <div style="color:var(--blue)">${fmtN(x.p)}</div>
+      <div style="color:${col};font-weight:700">${fmtN(x.r)}</div>
+    </td>`;
+  });
+  const colT=totR>totP?'var(--red)':totR>0?'var(--green)':'var(--muted)';
+  html+=`<td style="text-align:right;padding:6px 13px">
+    <div style="color:var(--blue);font-weight:700">${fmtN(totP)}</div>
+    <div style="color:${colT};font-weight:700">${fmtN(totR)}</div>
+    <div style="color:var(--muted);font-size:10px">${totP>0?Math.round(totR/totP*100):0}%</div>
+  </td></tr>`;
+  html+=`</tbody></table></div></div>`;
+  html+=`<div style="display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:10px;padding-left:4px">
+    <span style="color:var(--blue);font-weight:700">&#9646; Azul = Presupuesto</span>
+    <span style="color:var(--green);font-weight:700">&#9646; Verde = Real ejecutado</span>
+    <span style="color:var(--red);font-weight:700">&#9646; Rojo = Sobre-ejecución</span>
+  </div>`;
+  document.getElementById('rep-rvp').innerHTML=html;
+}
+function renderRepros(){
+  const ct=document.getElementById('rep-repros');
+  const {perId,tipoCod,entId}=getRepCtx();
+  const lista=repros.filter(r=>r.perId===perId&&r.tipoCod===tipoCod&&(!entId||r.entId===entId));
+  if(!lista.length){ct.innerHTML='<div class="warn-box">Sin reprogramaciones registradas para esta selección.</div>';return;}
+  let html=`<div class="tw"><div class="tbar"><h3>Historial de Reprogramaciones</h3><span style="font-size:12px;color:var(--muted)">${lista.length} registro(s)</span></div>
+  <table class="dt"><thead><tr><th>#</th><th>Fecha</th><th>Entidad</th><th>Partida</th><th>Desde</th><th>Hacia</th><th>Monto</th><th>Justificación</th></tr></thead><tbody>`;
+  lista.forEach(r=>{
+    html+=`<tr>
+      <td style="color:var(--muted)">${r.id}</td>
+      <td style="font-size:12px">${r.fecha}</td>
+      <td style="font-size:12px">${r.entNom}</td>
+      <td><code style="font-size:11px">${r.partidaCod}</code> ${r.partidaNom}</td>
+      <td><span style="background:#FFF7D6;color:#974F0C;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700">${MESES[r.from]}</span></td>
+      <td><span style="background:#E3FCEF;color:#006644;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700">${MESES[r.to]}</span></td>
+      <td style="font-weight:700;color:var(--blue)">${fmt(r.amt)}</td>
+      <td style="font-size:12px;color:var(--muted)">${r.just}</td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  ct.innerHTML=html;
+}
+function exportReporte(){
+  const {perId,tipoCod,ents,per,t}=getRepCtx();
+  if(!per||!t){alert('Selecciona período y tipo.');return;}
+  const rows=[['Entidad','Partida','Cuenta',...MESES_FULL.map(m=>'Ppto '+m),...MESES_FULL.map(m=>'Real '+m),'Total Ppto','Total Real','Variación']];
+  ents.forEach(e=>{
+    getPartidasEnt(tipoCod,e.id).forEach(p=>{
+      const cta=ctasContables.find(c=>c.id===p.ctaId);
+      const ms=Array.from({length:12},(_,m)=>getPp(perId,tipoCod,e.id,p.id,m));
+      const mr=Array.from({length:12},(_,m)=>getReal(perId,tipoCod,e.id,p.id,m));
+      const tp=ms.reduce((s,v)=>s+v,0), tr=mr.reduce((s,v)=>s+v,0);
+      rows.push([e.nom||e.nombre,p.nom,cta?cta.cod:'',...ms,...mr,tp,tr,tr-tp]);
+    });
+  });
+  dlExcel(rows,'reporte_rvp_'+(per.anio)+'_'+tipoCod);
+  toast('Reporte exportado');
+}
+
+// ============= USUARIOS, ROLES Y SESIÓN =============
+const ROLES_NOM = {budget_manager:'Jefe de Presupuesto', dept_head:'Jefe de Departamento', dept_user:'Analista / Ingresador'};
+const ROLES_CHIP = {budget_manager:'rol-bm', dept_head:'rol-jf', dept_user:'rol-du'};
+
+let usuarios = [
+  {id:1, nom:'Jonathan Vargas', user:'jvargas', rol:'budget_manager', email:'jonathan.vargas@veris.com.ec'},
+  {id:2, nom:'Maria Lopez',     user:'mlopez',  rol:'dept_head',      areaId:1, email:'mlopez@veris.com.ec'},
+  {id:3, nom:'Carlos Perez',    user:'cperez',  rol:'dept_head',      areaId:2},
+  {id:4, nom:'Ana Torres',      user:'atorres', rol:'dept_head',      areaId:3},
+  {id:5, nom:'Luis Mora',       user:'lmora',   rol:'dept_head',      areaId:4},
+  {id:6, nom:'Sofia Ruiz',      user:'sruiz',   rol:'dept_head',      areaId:5},
+  {id:7, nom:'Pedro Castro',    user:'pcastro', rol:'dept_head',      areaId:6},
+  {id:8, nom:'Patricia Vega',   user:'pvega',   rol:'dept_user'},
+  {id:9, nom:'Roberto Silva',   user:'rsilva',  rol:'dept_user'},
+];
+let sigIdUser = 10;
+
+// permisos de ingreso: permisos[tipoCod][entId] = [userId, ...]
+// permisos[tipoCod][entId] = [userId, ...]
+// pvega (id:8) puede ingresar TI/Sistemas en GASTOS e INVERSION
+// rsilva (id:9) puede ingresar Facturacion en GASTOS
+let permisos = {
+  'GASTOS':    {7:[8], 1:[9]},
+  'INVERSION': {7:[8]},
+  'PROYECTO':  {}
+};
+// historial de aprobaciones (audit trail)
+let histApro = [];
+let sigIdHist = 1;
+// sesión simulada — usuario activo
+let sesion = {userId:1};
+// contexto de rechazo pendiente
+let rejCtx = {nivel:0};
+
+function getCurUser(){return usuarios.find(u=>u.id===sesion.userId)||null;}
+
+// ============= FUNCIONES DE PERMISO =============
+function canEdit(perId,tipoCod,entId){
+  const est=getEst(perId,tipoCod,entId);
+  if(est==='apr2')return false;
+  const u=getCurUser(); if(!u)return false;
+  if(u.rol==='budget_manager')return true;
+  if(u.rol==='dept_head'){
+    const t=getTipo(tipoCod);
+    const esEnt=(t.ent==='area'&&u.areaId===entId)||(t.ent==='proyecto'&&(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId);
+    return esEnt&&!['env','apr1','apr2'].includes(est);
+  }
+  if(u.rol==='dept_user'){
+    const asig=((permisos[tipoCod]||{})[entId])||[];
+    return asig.includes(u.id)&&['sin','bor','rej1','rej2'].includes(est);
+  }
+  return false;
+}
+function canSubmit(perId,tipoCod,entId){
+  const est=getEst(perId,tipoCod,entId);
+  if(!['sin','bor','rej1','rej2'].includes(est))return false;
+  const u=getCurUser(); if(!u)return false;
+  if(u.rol==='budget_manager')return true;
+  if(u.rol==='dept_head'){
+    const t=getTipo(tipoCod);
+    return (t.ent==='area'&&u.areaId===entId)||(t.ent==='proyecto'&&(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId);
+  }
+  if(u.rol==='dept_user'){return ((permisos[tipoCod]||{})[entId]||[]).includes(u.id);}
+  return false;
+}
+function canApproveL1(perId,tipoCod,entId){
+  if(getEst(perId,tipoCod,entId)!=='env')return false;
+  const u=getCurUser(); if(!u)return false;
+  if(u.rol==='budget_manager')return true;
+  if(u.rol==='dept_head'){
+    const t=getTipo(tipoCod);
+    return (t.ent==='area'&&u.areaId===entId)||(t.ent==='proyecto'&&(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId);
+  }
+  return false;
+}
+function canApproveL2(perId,tipoCod,entId){
+  return getEst(perId,tipoCod,entId)==='apr1'&&(getCurUser()||{}).rol==='budget_manager';
+}
+
+function logApro(perId,tipoCod,entId,accion,comment){
+  const u=getCurUser();
+  histApro.push({id:sigIdHist++,fecha:new Date().toISOString().split('T')[0],
+    perId,tipoCod,entId,userId:u?u.id:0,userNom:u?u.nom:'Sistema',accion,comment});
+}
+function getLastRejComment(perId,tipoCod,entId){
+  const evts=histApro.filter(h=>h.perId===perId&&h.tipoCod===tipoCod&&h.entId===entId&&(h.accion==='rej1'||h.accion==='rej2'));
+  if(!evts.length)return null;
+  return evts[evts.length-1];
+}
+function getHistEnt(perId,tipoCod,entId){
+  return histApro.filter(h=>h.perId===perId&&h.tipoCod===tipoCod&&h.entId===entId);
+}
+
+// ============= BARRA DE APROBACIÓN =============
+function renderApprovalBar(){
+  const bar=document.getElementById('apro-bar'); if(!bar)return;
+  const est=getEst(st.perId,st.tipoCod,st.entId);
+  const aL1=canApproveL1(st.perId,st.tipoCod,st.entId);
+  const aL2=canApproveL2(st.perId,st.tipoCod,st.entId);
+  const rej=getLastRejComment(st.perId,st.tipoCod,st.entId);
+  bar.className='apro-bar';
+  if(est==='env'&&aL1){
+    bar.classList.add('apro-pend'); bar.classList.remove('hidden');
+    bar.innerHTML=`<span class="apro-ico">&#9203;</span>
+      <div class="apro-txt"><strong>Pendiente tu aprobación (Nivel 1 — Jefe de Departamento)</strong>
+      <span class="apro-sub">Revisar y aprobar para que pase al Jefe de Presupuesto.</span></div>
+      <button class="btn btn-success btn-sm" onclick="aprobarL1()">&#10003; Aprobar</button>
+      <button class="btn btn-danger btn-sm" onclick="openRechazar(1)">&#10005; Rechazar</button>`;
+  } else if(est==='apr1'&&aL2){
+    bar.classList.add('apro-ok1'); bar.classList.remove('hidden');
+    bar.innerHTML=`<span class="apro-ico">&#128338;</span>
+      <div class="apro-txt"><strong>Aprobado por Jefe de Departamento — Pendiente aprobación final</strong>
+      <span class="apro-sub">Como Jefe de Presupuesto, puedes dar la aprobación final.</span></div>
+      <button class="btn btn-success btn-sm" onclick="aprobarL2()">&#9989; Aprobación Final</button>
+      <button class="btn btn-danger btn-sm" onclick="openRechazar(2)">&#10005; Rechazar</button>`;
+  } else if(est==='apr2'){
+    bar.classList.add('apro-ok2'); bar.classList.remove('hidden');
+    bar.innerHTML=`<span class="apro-ico">&#9989;</span>
+      <div class="apro-txt"><strong>Presupuesto aprobado — Aprobación final completada</strong>
+      <span class="apro-sub">No se pueden realizar modificaciones.</span></div>`;
+  } else if((est==='rej1'||est==='rej2')&&rej){
+    bar.classList.add('apro-rej'); bar.classList.remove('hidden');
+    const nivel=est==='rej1'?'Jefe de Departamento':'Jefe de Presupuesto';
+    bar.innerHTML=`<span class="apro-ico">&#10060;</span>
+      <div class="apro-txt"><strong>Rechazado por ${nivel} (${rej.fecha})</strong>
+      <span class="apro-sub">Motivo: ${rej.comment}</span></div>`;
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function aprobarL1(){
+  if(!confirm('Aprobar este presupuesto como Jefe de Departamento?'))return;
+  setEst(st.perId,st.tipoCod,st.entId,'apr1');
+  logApro(st.perId,st.tipoCod,st.entId,'apr1','');
+  const b=document.getElementById('g-badge'); b.className='badge b-apr'; b.textContent='Aprobado Jefe';
+  renderApprovalBar(); renderGrid();
+  toast('Aprobado (Nivel 1). Pendiente aprobación del Jefe de Presupuesto.');
+}
+function aprobarL2(){
+  if(!confirm('Dar aprobación final? El presupuesto quedará bloqueado.'))return;
+  setEst(st.perId,st.tipoCod,st.entId,'apr2');
+  logApro(st.perId,st.tipoCod,st.entId,'apr2','');
+  // marcar versión activa como aprobada final
+  const va=getVerActiva(st.perId,st.tipoCod,st.entId);
+  if(va)va.estFinal='apr2';
+  const b=document.getElementById('g-badge'); b.className='badge b-apr'; b.textContent='Aprobado Final';
+  renderApprovalBar(); renderVersionBadge(); renderGrid();
+  toast('¡Aprobación final completada!');
+}
+function openRechazar(nivel){
+  rejCtx.nivel=nivel;
+  document.getElementById('rej-comment').value='';
+  document.getElementById('modal-rechazar').classList.remove('hidden');
+}
+function confirmarRechazo(){
+  const comment=document.getElementById('rej-comment').value.trim();
+  if(!comment){alert('El motivo del rechazo es obligatorio.');return;}
+  const accion=rejCtx.nivel===1?'rej1':'rej2';
+  const label=rejCtx.nivel===1?'Rechazado — Jefe':'Rechazado — Presupuesto';
+  setEst(st.perId,st.tipoCod,st.entId,accion);
+  logApro(st.perId,st.tipoCod,st.entId,accion,comment);
+  cm('modal-rechazar');
+  if(rejCtx.fromBandeja){
+    rejCtx.fromBandeja=false;
+    toast('Presupuesto rechazado.');
+    rBandeja();
+  } else {
+    const b=document.getElementById('g-badge'); b.className='badge b-rej'; b.textContent=label;
+    renderApprovalBar(); renderGrid();
+    toast('Presupuesto rechazado. Se notificó al responsable.');
+    setTimeout(backToEnt,2000);
+  }
+}
+
+// ============= BANDEJA =============
+function rBandeja(){
+  const u=getCurUser(); if(!u)return;
+  const filtro=document.getElementById('bandeja-filtro').value;
+  const sub=document.getElementById('bandeja-sub');
+  sub.textContent=u.rol==='budget_manager'?'Vista completa — todos los tipos y departamentos':
+    'Solo los presupuestos de tu departamento';
+  const items=[];
+  periodos.forEach(per=>{
+    tipos.forEach(t=>{
+      getEnts(t.codigo).forEach(e=>{
+        const est=getEst(per.id,t.codigo,e.id);
+        if(est==='sin')return;
+        // filtrar por rol
+        if(u.rol==='dept_head'){
+          const misma=(t.ent==='area'&&u.areaId===e.id)||(t.ent==='proyecto'&&(proyectos.find(p=>p.id===e.id)||{}).areaId===u.areaId);
+          if(!misma)return;
+        }
+        if(filtro==='pendiente'&&!['env','apr1'].includes(est))return;
+        const hist=getHistEnt(per.id,t.codigo,e.id);
+        const ult=hist.length?hist[hist.length-1]:null;
+        const dias=ult?Math.floor((new Date()-new Date(ult.fecha))/86400000):0;
+        items.push({per,t,e,est,hist,ult,dias});
+      });
+    });
+  });
+  if(!items.length){
+    document.getElementById('bandeja-body').innerHTML=`<div class="${filtro==='pendiente'?'info-box':'warn-box'}">No hay elementos ${filtro==='pendiente'?'pendientes de aprobación':'en el historial'} para tu rol.</div>`;
+    return;
+  }
+  const orden={env:0,apr1:1,rej1:2,rej2:3,bor:4,apr2:5,sin:6};
+  items.sort((a,b)=>(orden[a.est]||9)-(orden[b.est]||9)||b.dias-a.dias);
+  document.getElementById('bandeja-body').innerHTML=items.map(({per,t,e,est,hist,ult,dias})=>{
+    const [bc,bl]=bEst(est);
+    const cls=est==='env'?'p-l1':est==='apr1'?'p-l2':(est==='rej1'||est==='rej2')?'p-rej':'';
+    const tot=totalEnt(per.id,t.codigo,e.id);
+    const urgencia=est==='env'&&dias>3?`<span style="color:var(--red);font-size:11px;font-weight:700">&#9888; ${dias} días esperando</span>`:
+      dias>0?`<span style="font-size:11px;color:var(--muted)">${dias} día${dias!==1?'s':''}</span>`:'';
+    const histHtml=hist.length?`<div class="hist-timeline">`+hist.map(h=>{
+      const icoClass=h.accion==='env'?'h-env':h.accion.startsWith('apr')?'h-apr':h.accion.startsWith('rej')?'h-rej':'';
+      const acNom={env:'Enviado',bor:'Borrador',apr1:'Aprobado Jefe',apr2:'Aprobado Final',rej1:'Rechazado por Jefe',rej2:'Rechazado por Presupuesto'}[h.accion]||h.accion;
+      return `<div class="hist-evt ${icoClass}"><strong>${acNom}</strong> — ${h.userNom} (${h.fecha})${h.comment?'<br><span style="color:var(--red)">'+h.comment+'</span>':''}</div>`;
+    }).join('')+'</div>':'';
+    const acciones=est==='env'&&canApproveL1(per.id,t.codigo,e.id)?
+      `<div style="display:flex;gap:7px">
+        <button class="btn btn-success btn-sm" onclick="aprobarDesde(${per.id},'${t.codigo}',${e.id},1)">&#10003; Aprobar</button>
+        <button class="btn btn-danger btn-sm" onclick="rechazarDesde(${per.id},'${t.codigo}',${e.id},1)">Rechazar</button>
+      </div>`:
+      est==='apr1'&&canApproveL2(per.id,t.codigo,e.id)?
+      `<div style="display:flex;gap:7px">
+        <button class="btn btn-success btn-sm" onclick="aprobarDesde(${per.id},'${t.codigo}',${e.id},2)">&#9989; Aprobar Final</button>
+        <button class="btn btn-danger btn-sm" onclick="rechazarDesde(${per.id},'${t.codigo}',${e.id},2)">Rechazar</button>
+      </div>`:'';
+    return `<div class="bandeja-row ${cls}">
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:14px;font-weight:800">${e.nom||e.nombre} ${urgencia}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">
+          <span style="background:${t.color}22;color:${t.color};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">${t.ico} ${t.nombre}</span>
+          &nbsp;${per.anio}
+        </div>
+        <div style="margin-top:8px">${histHtml}</div>
+      </div>
+      <div style="text-align:right;display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <span class="badge ${bc}">${bl}</span>
+        <div style="font-size:16px;font-weight:800;color:var(--blue)">${tot>0?fmt(tot):'—'}</div>
+        ${acciones}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function aprobarDesde(perId,tipoCod,entId,nivel){
+  const label=nivel===1?'Jefe de Departamento':'aprobación final';
+  if(!confirm('Aprobar como '+label+'?'))return;
+  const accion=nivel===1?'apr1':'apr2';
+  const bl=nivel===1?'Aprobado Jefe':'Aprobado Final';
+  setEst(perId,tipoCod,entId,accion);
+  logApro(perId,tipoCod,entId,accion,'');
+  toast(bl+' ✓');
+  rBandeja();
+}
+function rechazarDesde(perId,tipoCod,entId,nivel){
+  st.perId=perId; st.tipoCod=tipoCod; st.entId=entId;
+  rejCtx.nivel=nivel; rejCtx.fromBandeja=true;
+  document.getElementById('rej-comment').value='';
+  document.getElementById('modal-rechazar').classList.remove('hidden');
+}
+// ============= USUARIOS =============
+function rUsuarios(){
+  const u=getCurUser(); if(!u||u.rol!=='budget_manager'){document.getElementById('tbody-usuarios').innerHTML='<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Acceso solo para Jefe de Presupuesto.</td></tr>';return;}
+  document.getElementById('tbody-usuarios').innerHTML=usuarios.map(uu=>{
+    const rolChip=`<span class="rol-chip ${ROLES_CHIP[uu.rol]||''}">${ROLES_NOM[uu.rol]||uu.rol}</span>`;
+    const areaVinc=uu.areaId?(areas.find(a=>a.id===uu.areaId)||{nom:'?'}).nom:'—';
+    let permsDesc='—';
+    if(uu.rol==='dept_user'){
+      const pList=[];
+      tipos.forEach(t=>{
+        const ents=getEnts(t.codigo);
+        ents.forEach(e=>{if(((permisos[t.codigo]||{})[e.id]||[]).includes(uu.id))pList.push(t.ico+' '+(e.nom||e.nombre));});
+      });
+      permsDesc=pList.length?pList.join(', '):'<span style="color:var(--muted)">Sin asignaciones</span>';
+    }
+    return `<tr>
+      <td><div style="font-weight:700">${uu.nom}</div><div style="font-size:11px;color:var(--muted)">${uu.user}${uu.email?' — '+uu.email:''}</div></td>
+      <td>${rolChip}</td>
+      <td style="font-size:13px">${areaVinc}</td>
+      <td style="font-size:12px">${permsDesc}</td>
+      <td>
+        ${uu.rol==='dept_user'?`<button class="btn btn-xs btn-ghost" onclick="openModalAsigPerm(${uu.id})">Permisos</button> `:''}
+        <button class="btn btn-xs btn-ghost" onclick="openModalUsuario(${uu.id})">Editar</button>
+        ${uu.id!==1?`<button class="btn btn-xs" style="background:var(--bg);color:var(--red);border:none;cursor:pointer;margin-left:4px" onclick="delUsuario(${uu.id})">&#10005;</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+function openModalUsuario(id){
+  const uu=id?usuarios.find(x=>x.id===id):null;
+  document.getElementById('mu-title').textContent=id?'Editar Usuario':'Nuevo Usuario';
+  document.getElementById('mu-nom').value=uu?uu.nom:'';
+  document.getElementById('mu-user').value=uu?uu.user:'';
+  document.getElementById('mu-email').value=uu?uu.email||'':'';
+  document.getElementById('mu-rol').value=uu?uu.rol:'dept_user';
+  document.getElementById('mu-area').innerHTML=areas.map(a=>`<option value="${a.id}" ${uu&&uu.areaId===a.id?'selected':''}>${a.nom}</option>`).join('');
+  document.getElementById('modal-usuario').dataset.eid=id||'';
+  updModalUsuarioRol();
+  document.getElementById('modal-usuario').classList.remove('hidden');
+}
+function updModalUsuarioRol(){
+  const rol=document.getElementById('mu-rol').value;
+  const wrap=document.getElementById('mu-area-wrap');
+  const hint=document.getElementById('mu-rol-hint');
+  const hints={budget_manager:'Aprueba todos los presupuestos (Nivel 2) y gestiona el sistema.',dept_head:'Aprueba el presupuesto de su departamento (Nivel 1) y puede ingresar datos.',dept_user:'Puede ingresar datos solo en los departamentos que se le asignen.'};
+  hint.textContent=hints[rol]||'';
+  wrap.classList.toggle('hidden',rol!=='dept_head');
+}
+function guardarUsuario(){
+  const nom=document.getElementById('mu-nom').value.trim();
+  const user=document.getElementById('mu-user').value.trim().toLowerCase();
+  const email=document.getElementById('mu-email').value.trim();
+  const rol=document.getElementById('mu-rol').value;
+  if(!nom||!user){alert('Completa nombre y usuario.');return;}
+  const eid=parseInt(document.getElementById('modal-usuario').dataset.eid||'0');
+  if(!eid&&usuarios.find(u=>u.user===user)){alert('El usuario ya existe.');return;}
+  const d={nom,user,email,rol};
+  if(rol==='dept_head')d.areaId=parseInt(document.getElementById('mu-area').value);
+  if(eid){const uu=usuarios.find(x=>x.id===eid);if(uu)Object.assign(uu,d);}
+  else usuarios.push({id:sigIdUser++,...d});
+  cm('modal-usuario'); rUsuarios(); renderSidebarUser(); toast('Usuario guardado');
+}
+function delUsuario(id){
+  if(!confirm('Eliminar usuario?'))return;
+  if(id===sesion.userId){alert('No puedes eliminar el usuario activo.');return;}
+  usuarios=usuarios.filter(u=>u.id!==id);
+  rUsuarios(); renderSidebarUser();
+}
+function openModalAsigPerm(uid){
+  const uu=usuarios.find(x=>x.id===uid); if(!uu)return;
+  document.getElementById('map-title').textContent='Permisos — '+uu.nom;
+  document.getElementById('map-sub').textContent='Ingresador: solo puede cargar datos, no aprobar';
+  document.getElementById('modal-asig-perm').dataset.uid=uid;
+  let html='';
+  tipos.forEach(t=>{
+    const ents=getEnts(t.codigo);
+    html+=`<div style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px" style="color:${t.color}">${t.ico} ${t.nombre}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px">`;
+    ents.forEach(e=>{
+      const chk=((permisos[t.codigo]||{})[e.id]||[]).includes(uid);
+      html+=`<label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:${chk?'#E9F2FF':''}">
+        <input type="checkbox" data-tc="${t.codigo}" data-eid="${e.id}" ${chk?'checked':''}> ${e.nom||e.nombre}
+      </label>`;
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('map-body').innerHTML=html;
+  document.getElementById('modal-asig-perm').classList.remove('hidden');
+}
+function guardarAsigPerm(){
+  const uid=parseInt(document.getElementById('modal-asig-perm').dataset.uid);
+  document.querySelectorAll('#map-body input[type=checkbox]').forEach(chk=>{
+    const tc=chk.dataset.tc, eid=parseInt(chk.dataset.eid);
+    if(!permisos[tc])permisos[tc]={};
+    if(!permisos[tc][eid])permisos[tc][eid]=[];
+    const arr=permisos[tc][eid];
+    const idx=arr.indexOf(uid);
+    if(chk.checked&&idx<0)arr.push(uid);
+    if(!chk.checked&&idx>=0)arr.splice(idx,1);
+  });
+  cm('modal-asig-perm'); rUsuarios(); toast('Permisos actualizados');
+}
+
+// ============= SIDEBAR USUARIO =============
+function renderSidebarUser(){
+  const box=document.getElementById('sidebar-usr-box'); if(!box)return;
+  const u=getCurUser();
+  if(!u){box.innerHTML='';return;}
+  const chip=ROLES_CHIP[u.rol]||'';
+  const rolNom=ROLES_NOM[u.rol]||u.rol;
+  box.innerHTML=`<div class="su-nom">${u.nom}</div>
+    <span class="rol-chip ${chip}">${rolNom}</span>
+    <select class="su-sel" onchange="cambiarUsuario(this.value)">
+      ${usuarios.map(uu=>`<option value="${uu.id}" ${uu.id===sesion.userId?'selected':''}>${uu.nom}</option>`).join('')}
+    </select>`;
+}
+function cambiarUsuario(uid){
+  sesion.userId=parseInt(uid);
+  renderSidebarUser();
+  actualizarNav();
+  nav('dash');
+  toast('Sesión cambiada: '+getCurUser().nom);
+}
+function actualizarNav(){
+  const u=getCurUser(); if(!u)return;
+  const isBM=u.rol==='budget_manager';
+  const isJF=u.rol==='dept_head';
+  const isUA=u.rol==='dept_user';
+  // Admin items: solo BM
+  ['periodos','tipos','partidas','areas','proyectos'].forEach(id=>{
+    const el=document.getElementById('nav-'+id);
+    if(el)el.style.display=isBM?'':'none';
+  });
+  // Bandeja: BM + JF
+  const gb=document.getElementById('navg-bandeja');
+  if(gb)gb.style.display=(isBM||isJF)?'':'none';
+  // Usuarios: solo BM
+  const gu=document.getElementById('navg-usuarios');
+  if(gu)gu.style.display=isBM?'':'none';
+  // Reales: todos
+  // Reportes: todos
+}
+
+// ============= VERSIONES =============
+function getVersEnt(perId,tipoCod,entId){
+  if(!versiones[perId])versiones[perId]={};
+  if(!versiones[perId][tipoCod])versiones[perId][tipoCod]={};
+  if(!versiones[perId][tipoCod][entId]){
+    // auto-crear v1 la primera vez
+    versiones[perId][tipoCod][entId]=[{
+      id:sigIdVer++,num:1,nom:'Presupuesto Original',motivo:'',
+      fecha:new Date().toISOString().split('T')[0],
+      creadoPorNom:(getCurUser()||{nom:'Sistema'}).nom,estFinal:null
+    }];
+  }
+  return versiones[perId][tipoCod][entId];
+}
+function getVerActiva(perId,tipoCod,entId){
+  const vs=getVersEnt(perId,tipoCod,entId);
+  return vs[vs.length-1];
+}
+function snapPptos(perId,tipoCod,entId,verId){
+  const src=((pptos[perId]||{})[tipoCod]||{})[entId]||{};
+  const cpy={}; Object.keys(src).forEach(pid=>{cpy[pid]=[...(src[pid]||Array(12).fill(0))];});
+  if(!vsnap[perId])vsnap[perId]={};
+  if(!vsnap[perId][tipoCod])vsnap[perId][tipoCod]={};
+  if(!vsnap[perId][tipoCod][entId])vsnap[perId][tipoCod][entId]={};
+  vsnap[perId][tipoCod][entId][verId]=cpy;
+}
+function getSnapPp(perId,tipoCod,entId,verId,pid,m){
+  return (((((vsnap[perId]||{})[tipoCod]||{})[entId]||{})[verId]||{})[pid]||[])[m]||0;
+}
+function renderVersionBadge(){
+  const el=document.getElementById('g-ver-badge'); if(!el)return;
+  const vs=getVersEnt(st.perId,st.tipoCod,st.entId);
+  const va=vs[vs.length-1];
+  const frozen=getEst(st.perId,st.tipoCod,st.entId)==='apr2';
+  el.className='ver-badge'+(frozen?' ver-frozen':'');
+  el.textContent='v'+va.num+' — '+va.nom;
+  el.classList.remove('hidden');
+  // mostrar u ocultar botones de versión
+  const btnH=document.getElementById('btn-historial');
+  const btnR=document.getElementById('btn-revision');
+  if(btnH)btnH.classList.toggle('hidden',vs.length<=1&&!vsnap[st.perId]?.[st.tipoCod]?.[st.entId]);
+  // "Nueva Revisión" solo si el presupuesto está aprobado final y el usuario puede aprobar L2
+  const puedeBM=(getCurUser()||{}).rol==='budget_manager';
+  if(btnR)btnR.classList.toggle('hidden',!(frozen&&puedeBM));
+}
+function openModalRevision(){
+  if(getEst(st.perId,st.tipoCod,st.entId)!=='apr2'){alert('Solo se puede crear una revisión sobre un presupuesto con aprobación final.');return;}
+  document.getElementById('rev-nom').value='';
+  document.getElementById('rev-motivo').value='';
+  document.getElementById('modal-revision').classList.remove('hidden');
+}
+function confirmarRevision(){
+  const nom=document.getElementById('rev-nom').value.trim();
+  const motivo=document.getElementById('rev-motivo').value.trim();
+  if(!nom||!motivo){alert('Completa el nombre y el motivo de la revisión.');return;}
+  const vs=getVersEnt(st.perId,st.tipoCod,st.entId);
+  const vaOld=vs[vs.length-1];
+  // 1. congelar versión actual
+  vaOld.estFinal='apr2';
+  snapPptos(st.perId,st.tipoCod,st.entId,vaOld.id);
+  // 2. crear nueva versión
+  const newVer={
+    id:sigIdVer++, num:vaOld.num+1, nom, motivo,
+    fecha:new Date().toISOString().split('T')[0],
+    creadoPorNom:(getCurUser()||{nom:'Sistema'}).nom,
+    estFinal:null
+  };
+  vs.push(newVer);
+  // 3. resetear estado → borrador (nueva versión debe reaprobarse)
+  setEst(st.perId,st.tipoCod,st.entId,'bor');
+  logApro(st.perId,st.tipoCod,st.entId,'bor','Nueva revisión: '+nom+' — '+motivo);
+  cm('modal-revision');
+  // refrescar badge y botones
+  const b=document.getElementById('g-badge'); b.className='badge b-bor'; b.textContent='Borrador';
+  renderVersionBadge(); renderApprovalBar(); renderGrid();
+  toast('Revisión v'+newVer.num+' creada — lista para editar y reenviar');
+}
+
+function openHistorial(){
+  const vs=getVersEnt(st.perId,st.tipoCod,st.entId);
+  const ent=getEnt(st.tipoCod,st.entId), per=periodos.find(p=>p.id===st.perId), t=getTipo(st.tipoCod);
+  document.getElementById('hist-title').textContent='Historial — '+(ent.nom||ent.nombre);
+  document.getElementById('hist-sub').textContent=t.ico+' '+t.nombre+' · '+per.anio;
+  // timeline
+  let tlHtml='<div class="ver-timeline">';
+  vs.forEach((v,i)=>{
+    const activa=(i===vs.length-1);
+    const dotCls=activa?'active':'frozen';
+    const cardCls=activa?'active':'frozen';
+    const estLabel=activa?(getEst(st.perId,st.tipoCod,st.entId)==='apr2'?'✓ Aprobado Final':'En curso'):('✓ Congelada');
+    tlHtml+=`<div class="ver-row">
+      <div class="ver-dot-col">
+        <div class="ver-dot ${dotCls}"></div>
+        ${i<vs.length-1?'<div class="ver-line"></div>':''}
+      </div>
+      <div class="ver-card ${cardCls}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+          <div>
+            <span style="font-size:13px;font-weight:800">v${v.num} — ${v.nom}</span>
+            ${v.motivo?`<div style="font-size:12px;color:var(--muted);margin-top:3px">Motivo: ${v.motivo}</div>`:''}
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${v.fecha} · ${v.creadoPorNom}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;background:${activa?'#EDF2FF':'#E3FCEF'};color:${activa?'var(--blue)':'#006644'}">${estLabel}</span>
+        </div>
+        ${v.motivo&&!activa?`<div style="margin-top:8px;font-size:12px"><strong>Total congelado:</strong> ${fmt(Object.keys(((vsnap[st.perId]||{})[st.tipoCod]||{})[st.entId]||{})[0]?Object.values(((vsnap[st.perId]||{})[st.tipoCod]||{})[st.entId]||{})[0].reduce((s,a)=>s+a.reduce((ss,x)=>ss+x,0),0):0)}</div>`:''}
+      </div>
+    </div>`;
+  });
+  tlHtml+='</div>';
+  document.getElementById('hist-timeline-wrap').innerHTML=tlHtml;
+  // selectores comparación
+  const allVers=[...vs.filter(v=>vsnap[st.perId]?.[st.tipoCod]?.[st.entId]?.[v.id]),
+    {id:'current',num:vs[vs.length-1].num,nom:vs[vs.length-1].nom+' (actual)'}];
+  const optHtml=allVers.map(v=>`<option value="${v.id}">v${v.num} — ${v.nom}</option>`).join('');
+  document.getElementById('cmp-v1').innerHTML=optHtml;
+  document.getElementById('cmp-v2').innerHTML=optHtml;
+  // por defecto: comparar penúltima vs actual
+  if(allVers.length>=2){
+    document.getElementById('cmp-v1').value=allVers[allVers.length-2].id;
+    document.getElementById('cmp-v2').value=allVers[allVers.length-1].id;
+  }
+  document.getElementById('cmp-body').innerHTML='<div style="color:var(--muted);font-size:13px">Selecciona las versiones y pulsa "Ver diferencias".</div>';
+  document.getElementById('modal-historial').classList.remove('hidden');
+  if(allVers.length>=2)renderComparacion();
+}
+function getPpForVersion(vid,pid,m){
+  if(vid==='current')return getPp(st.perId,st.tipoCod,st.entId,pid,m);
+  return getSnapPp(st.perId,st.tipoCod,st.entId,vid,pid,m);
+}
+function renderComparacion(){
+  const v1id=document.getElementById('cmp-v1').value;
+  const v2id=document.getElementById('cmp-v2').value;
+  if(v1id===v2id){document.getElementById('cmp-body').innerHTML='<div class="warn-box">Selecciona dos versiones diferentes.</div>';return;}
+  const vs=getVersEnt(st.perId,st.tipoCod,st.entId);
+  const v1nom=(vs.find(v=>String(v.id)===String(v1id))||{nom:'v?'}).nom;
+  const v2nom=v2id==='current'?(vs[vs.length-1].nom+' (actual)'):(vs.find(v=>String(v.id)===String(v2id))||{nom:'v?'}).nom;
+  const parts=getPartidasEnt(st.tipoCod,st.entId);
+  let cambios=0,soloChanged=false;
+  let rows='';
+  const ctasUsadas=[...new Set(parts.map(p=>p.ctaId))].map(id=>ctasContables.find(c=>c.id===id)).filter(Boolean).sort((a,b)=>a.cod.localeCompare(b.cod));
+  ctasUsadas.forEach(cta=>{
+    const cparts=parts.filter(p=>p.ctaId===cta.id);
+    let ctaT1=0,ctaT2=0;
+    const partsRows=cparts.map(p=>{
+      const t1=Array.from({length:12},(_,m)=>getPpForVersion(v1id,p.id,m)).reduce((s,v)=>s+v,0);
+      const t2=Array.from({length:12},(_,m)=>getPpForVersion(v2id,p.id,m)).reduce((s,v)=>s+v,0);
+      ctaT1+=t1; ctaT2+=t2;
+      const delta=t2-t1, pct=t1>0?Math.round(delta/t1*100):0;
+      const changed=Math.abs(delta)>0.01;
+      if(changed)cambios++;
+      const dCls=delta>0?'delta-pos':delta<0?'delta-neg':'delta-neu';
+      return `<tr class="${changed?'delta-row-chg':''}">
+        <td style="padding:7px 13px;font-size:12px">${p.nom}</td>
+        <td style="font-size:10px;color:var(--muted);padding:7px 9px"><code>${p.cod}</code></td>
+        <td style="text-align:right;padding:7px 10px">${fmtN(t1)}</td>
+        <td style="text-align:right;padding:7px 10px;font-weight:${changed?700:400}">${fmtN(t2)}</td>
+        <td style="text-align:right;padding:7px 10px" class="${dCls}">${delta>=0?'+':''}${fmtN(delta)}</td>
+        <td style="text-align:right;padding:7px 10px" class="${dCls}">${t1>0?(delta>=0?'+':'')+pct+'%':'—'}</td>
+      </tr>`;
+    }).join('');
+    const ctaDelta=ctaT2-ctaT1;
+    const ctaDCls=ctaDelta>0?'delta-pos':ctaDelta<0?'delta-neg':'delta-neu';
+    rows+=`<tr style="background:#F0F4FF"><td colspan="2" style="padding:7px 13px;font-weight:700;font-size:11px">${ctaBadge(cta)}${cta.nom}</td>
+      <td style="text-align:right;padding:7px 10px;font-weight:700">${fmtN(ctaT1)}</td>
+      <td style="text-align:right;padding:7px 10px;font-weight:700">${fmtN(ctaT2)}</td>
+      <td style="text-align:right;padding:7px 10px;font-weight:700" class="${ctaDCls}">${ctaDelta>=0?'+':''}${fmtN(ctaDelta)}</td>
+      <td></td></tr>`+partsRows;
+  });
+  const totV1=parts.reduce((s,p)=>s+Array.from({length:12},(_,m)=>getPpForVersion(v1id,p.id,m)).reduce((ss,v)=>ss+v,0),0);
+  const totV2=parts.reduce((s,p)=>s+Array.from({length:12},(_,m)=>getPpForVersion(v2id,p.id,m)).reduce((ss,v)=>ss+v,0),0);
+  const totDelta=totV2-totV1, totPct=totV1>0?Math.round(totDelta/totV1*100):0;
+  const totCls=totDelta>0?'delta-pos':totDelta<0?'delta-neg':'delta-neu';
+  const resumen=cambios===0
+    ?'<div class="info-box">Sin diferencias entre estas versiones.</div>'
+    :`<div class="warn-box" style="margin-bottom:12px">&#9650; <strong>${cambios} partida${cambios!==1?'s':''} con cambios.</strong> Total: ${fmt(totV1)} → ${fmt(totV2)} (<span class="${totCls}">${totDelta>=0?'+':''}${fmtN(totDelta)}, ${totPct>=0?'+':''}${totPct}%</span>). Las filas resaltadas tuvieron modificaciones.</div>`;
+  document.getElementById('cmp-body').innerHTML=resumen+`
+    <div style="overflow-x:auto"><table class="dt" style="min-width:600px">
+      <thead><tr>
+        <th>Partida</th><th>Código</th>
+        <th style="text-align:right">${v1nom}</th>
+        <th style="text-align:right">${v2nom}</th>
+        <th style="text-align:right">Diferencia</th>
+        <th style="text-align:right">%</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr style="background:#EDF2FF">
+        <td colspan="2" style="padding:8px 13px;font-weight:700">TOTAL GENERAL</td>
+        <td style="text-align:right;padding:8px 10px;font-weight:700">${fmt(totV1)}</td>
+        <td style="text-align:right;padding:8px 10px;font-weight:700">${fmt(totV2)}</td>
+        <td style="text-align:right;padding:8px 10px;font-weight:700" class="${totCls}">${totDelta>=0?'+':''}${fmt(totDelta)}</td>
+        <td style="text-align:right;padding:8px 10px;font-weight:700" class="${totCls}">${totPct>=0?'+':''}${totPct}%</td>
+      </tr></tfoot>
+    </table></div>`;
+}
+function exportComparacion(){
+  const v1id=document.getElementById('cmp-v1').value;
+  const v2id=document.getElementById('cmp-v2').value;
+  const vs=getVersEnt(st.perId,st.tipoCod,st.entId);
+  const v1nom=(vs.find(v=>String(v.id)===String(v1id))||{nom:'v?'}).nom;
+  const v2nom=v2id==='current'?(vs[vs.length-1].nom):(vs.find(v=>String(v.id)===String(v2id))||{nom:'v?'}).nom;
+  const parts=getPartidasEnt(st.tipoCod,st.entId);
+  const rows=[['Código','Partida','Cuenta',v1nom,v2nom,'Diferencia','%']];
+  parts.forEach(p=>{
+    const cta=ctasContables.find(c=>c.id===p.ctaId);
+    const t1=Array.from({length:12},(_,m)=>getPpForVersion(v1id,p.id,m)).reduce((s,v)=>s+v,0);
+    const t2=Array.from({length:12},(_,m)=>getPpForVersion(v2id,p.id,m)).reduce((s,v)=>s+v,0);
+    const d=t2-t1, pct=t1>0?Math.round(d/t1*100):0;
+    rows.push([p.cod,p.nom,cta?cta.cod:'',t1,t2,d,pct+'%']);
+  });
+  const per=periodos.find(p=>p.id===st.perId), ent=getEnt(st.tipoCod,st.entId);
+  dlExcel(rows,'comparacion_'+per.anio+'_'+(ent.nom||ent.nombre||'').replace(/\s/g,'_'));
+  toast('Comparación exportada');
+}
+
+// ============= INIT =============
+renderSidebarUser();
+actualizarNav();
+nav('dash');
+</script>
+</body>
+</html>
