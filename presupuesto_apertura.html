@@ -264,6 +264,7 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
     <div class="nav-item" onclick="nav('partidas')"  id="nav-partidas"><span class="ico">&#128218;</span> Catálogo de Partidas</div>
     <div class="nav-item" onclick="nav('areas')"     id="nav-areas"><span class="ico">&#127970;</span> Departamentos</div>
     <div class="nav-item" onclick="nav('proyectos')" id="nav-proyectos"><span class="ico">&#128736;</span> Proyectos</div>
+    <div class="nav-item" onclick="nav('centros')"   id="nav-centros"><span class="ico">&#127981;</span> Centros de Costo</div>
   </div>
   <div class="nav-group">
     <div class="nav-label">Jefe de Departamento / PM</div>
@@ -331,6 +332,15 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
       <tbody id="tbody-partidas"></tbody>
     </table>
   </div>
+</div>
+
+<!-- CENTROS DE COSTO -->
+<div id="v-centros" class="hidden">
+  <div class="page-header">
+    <div><div class="page-title">Centros de Costo</div><div class="page-sub">Unidades contables de presupuesto dentro de cada departamento</div></div>
+    <div class="hdr-acts"><button class="btn btn-primary" onclick="openModalCC()">+ Nuevo centro</button></div>
+  </div>
+  <div id="cc-list"></div>
 </div>
 
 <!-- DEPARTAMENTOS -->
@@ -697,6 +707,23 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
 </div>
 
 <!-- MODAL USUARIO -->
+<div class="overlay hidden" id="modal-cc">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr"><h3 id="mcc-title">Nuevo Centro de Costo</h3><button class="mx" onclick="document.getElementById('modal-cc').classList.add('hidden')">&times;</button></div>
+    <div class="mbody">
+      <div class="fld-row">
+        <div class="fld"><label>Código *</label><input type="text" id="mcc-cod" placeholder="Ej. TI-004" style="text-transform:uppercase"><div class="fld-hint">Debe ser único. Ej: FAC-001, LAB-002</div></div>
+        <div class="fld"><label>Nombre *</label><input type="text" id="mcc-nom" placeholder="Ej. Soporte Técnico"></div>
+      </div>
+      <div class="fld"><label>Departamento *</label><select id="mcc-area"></select></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-cc').classList.add('hidden')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCC()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-usuario">
   <div class="modal" style="max-width:500px">
     <div class="mhdr"><h3 id="mu-title">Nuevo Usuario</h3><button class="mx" onclick="cm('modal-usuario')">&times;</button></div>
@@ -856,9 +883,9 @@ const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Ag
 
 // ============= DATOS =============
 let tipos = [
-  {id:1, codigo:'GASTOS',   nombre:'Gastos Operacionales',    desc:'Gastos corrientes por departamento',  ent:'area',     color:'#0052CC', ico:'💰'},
+  {id:1, codigo:'GASTOS',   nombre:'Gastos Operacionales',    desc:'Gastos corrientes por departamento',  ent:'cc',       color:'#0052CC', ico:'💰'},
   {id:2, codigo:'PROYECTO', nombre:'Presupuesto de Proyecto', desc:'Presupuesto por proyecto especifico', ent:'proyecto', color:'#36B37E', ico:'🏗️'},
-  {id:3, codigo:'INVERSION',nombre:'Inversiones / CAPEX',     desc:'Activos fijos y equipamiento',        ent:'area',     color:'#6554C0', ico:'📦'},
+  {id:3, codigo:'INVERSION',nombre:'Inversiones / CAPEX',     desc:'Activos fijos y equipamiento',        ent:'cc',       color:'#6554C0', ico:'📦'},
 ];
 let sigIdTipo = 4;
 
@@ -1027,6 +1054,24 @@ let areas = [
 ];
 let sigIdArea = 8;
 
+let centrosCosto = [
+  {id:1,  cod:'FAC-001', nom:'Facturación Ambulatoria',  areaId:1, activo:true},
+  {id:2,  cod:'FAC-002', nom:'Facturación Hospitalaria', areaId:1, activo:true},
+  {id:3,  cod:'AGE-001', nom:'Call Center',              areaId:2, activo:true},
+  {id:4,  cod:'AGE-002', nom:'Agendamiento Digital',     areaId:2, activo:true},
+  {id:5,  cod:'HC-001',  nom:'Historia Clínica',         areaId:3, activo:true},
+  {id:6,  cod:'LAB-001', nom:'Bioquímica',               areaId:4, activo:true},
+  {id:7,  cod:'LAB-002', nom:'Microbiología',            areaId:4, activo:true},
+  {id:8,  cod:'COM-001', nom:'Comercial',                areaId:5, activo:true},
+  {id:9,  cod:'COM-002', nom:'Convenios',                areaId:5, activo:true},
+  {id:10, cod:'FIN-001', nom:'Financiero',               areaId:6, activo:true},
+  {id:11, cod:'FIN-002', nom:'Contabilidad',             areaId:6, activo:true},
+  {id:12, cod:'TI-001',  nom:'Infraestructura',          areaId:7, activo:true},
+  {id:13, cod:'TI-002',  nom:'Desarrollo',               areaId:7, activo:true},
+  {id:14, cod:'TI-003',  nom:'Soporte',                  areaId:7, activo:true},
+];
+let sigIdCC = 15;
+
 let proyectos = [
   {id:1, cod:'PRY-001', nom:'Implementacion ERP',   areaId:7, res:'Jonathan Vargas', ini:'2027-01-01', fin:'2027-12-31', est:'activo'},
   {id:2, cod:'PRY-002', nom:'Expansion Sede Norte', areaId:1, res:'Maria Lopez',     ini:'2027-03-01', fin:'2027-09-30', est:'activo'},
@@ -1043,8 +1088,8 @@ let sigIdPer = 3;
 // asignaciones[tipoCod][entId] = [partidaId, ...]
 // TI/Sistemas (area 7) recibe el catálogo completo como punto de partida.
 let asignaciones = {
-  'GASTOS':    {7: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id)},
-  'INVERSION': {7: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id)},
+  'GASTOS':    {12: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id)},
+  'INVERSION': {12: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id)},
   'PROYECTO':  {}
 };
 
@@ -1103,8 +1148,9 @@ const bEst     = e => ({
   rej2:['b-rej','Rechazado — Presupuesto'],
 })[e]||['b-sin',e];
 const getTipo  = cod => tipos.find(t=>t.codigo===cod);
-const getEnt   = (tipCod, id) => { const t=getTipo(tipCod); return t?.ent==='proyecto' ? proyectos.find(p=>p.id===id) : areas.find(a=>a.id===id); };
-const getEnts  = tipCod => { const t=getTipo(tipCod); return t?.ent==='proyecto' ? proyectos : areas; };
+const getEnt   = (tipCod, id) => { const t=getTipo(tipCod); if(t?.ent==='cc') return centrosCosto.find(c=>c.id===id); if(t?.ent==='proyecto') return proyectos.find(p=>p.id===id); return areas.find(a=>a.id===id); };
+const getEnts  = tipCod => { const t=getTipo(tipCod); if(t?.ent==='cc') return centrosCosto.filter(c=>c.activo); if(t?.ent==='proyecto') return proyectos; return areas; };
+const getCCArea = cc => areas.find(a=>a.id===cc?.areaId);
 // Versión filtrada por rol — solo entidades a las que el usuario activo tiene acceso
 function getEntsVisibles(tipCod){
   const todas=getEnts(tipCod);
@@ -1112,8 +1158,9 @@ function getEntsVisibles(tipCod){
   if(u.rol==='budget_manager')return todas;
   if(u.rol==='dept_head'){
     const t=getTipo(tipCod);
-    if(t.ent==='area')    return todas.filter(e=>e.id===u.areaId);
+    if(t.ent==='cc')      return todas.filter(e=>e.areaId===u.areaId);
     if(t.ent==='proyecto')return todas.filter(e=>e.areaId===u.areaId);
+    return todas.filter(e=>e.id===u.areaId);
   }
   if(u.rol==='dept_user'){
     const asigTipo=permisos[tipCod]||{};
@@ -1133,7 +1180,7 @@ const setReal = (p,t,e,pid,m,v) => {
 const totalRealEnt = (p,t,e) => getPartidasEnt(t,e).reduce((s,pp)=>{for(let m=0;m<12;m++)s+=getReal(p,t,e,pp.id,m);return s;},0);
 
 // ============= NAV =============
-const renders = {dash:rDash,periodos:rPeriodos,tipos:rTipos,partidas:rPartidas,areas:rAreas,proyectos:rProy,ingresar:rIngresar,reales:rReales,reportes:rReportes,bandeja:rBandeja,usuarios:rUsuarios};
+const renders = {dash:rDash,periodos:rPeriodos,tipos:rTipos,partidas:rPartidas,areas:rAreas,proyectos:rProy,centros:rCentros,ingresar:rIngresar,reales:rReales,reportes:rReportes,bandeja:rBandeja,usuarios:rUsuarios};
 function nav(id){
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   document.getElementById('nav-'+id).classList.add('active');
@@ -1367,6 +1414,60 @@ function exportPlantillaPartidas(){
   dlExcel(rows,'catalogo_partidas');
 }
 
+// ============= CENTROS DE COSTO =============
+function rCentros(){
+  const el=document.getElementById('cc-list'); if(!el)return;
+  const areaIds=[...new Set(centrosCosto.map(c=>c.areaId))].sort((a,b)=>a-b);
+  if(!centrosCosto.length){
+    el.innerHTML='<div class="warn-box">Sin centros de costo. Crea el primero con el botón +.</div>';return;
+  }
+  el.innerHTML=areaIds.map(aid=>{
+    const area=areas.find(a=>a.id===aid)||{nom:'Sin depto'};
+    const ccs=centrosCosto.filter(c=>c.areaId===aid);
+    const rows=ccs.map(c=>`<tr>
+      <td><code style="font-size:12px;background:var(--blue-lt);color:var(--blue);padding:2px 7px;border-radius:4px">${c.cod}</code></td>
+      <td style="font-weight:600">${c.nom}</td>
+      <td><span class="badge ${c.activo?'b-open':'b-closed'}">${c.activo?'Activo':'Inactivo'}</span></td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="openModalCC(${c.id})">Editar</button>
+        <button class="btn btn-xs" style="background:var(--bg);color:var(--red);border:none;cursor:pointer;margin-left:4px" onclick="toggleCC(${c.id})">${c.activo?'Desactivar':'Activar'}</button>
+      </td>
+    </tr>`).join('');
+    return `<div class="tw" style="margin-bottom:18px">
+      <div class="tbar"><h3>&#127970; ${area.nom}</h3><span style="font-size:12px;color:var(--muted)">${ccs.length} centros de costo</span></div>
+      <table class="dt">
+        <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+function openModalCC(id){
+  const cc=id?centrosCosto.find(c=>c.id===id):null;
+  document.getElementById('mcc-title').textContent=id?'Editar Centro de Costo':'Nuevo Centro de Costo';
+  document.getElementById('mcc-cod').value=cc?cc.cod:'';
+  document.getElementById('mcc-nom').value=cc?cc.nom:'';
+  document.getElementById('mcc-area').innerHTML=areas.map(a=>`<option value="${a.id}" ${cc&&cc.areaId===a.id?'selected':''}>${a.nom}</option>`).join('');
+  document.getElementById('modal-cc').dataset.eid=id||'';
+  document.getElementById('modal-cc').classList.remove('hidden');
+}
+function guardarCC(){
+  const cod=document.getElementById('mcc-cod').value.trim().toUpperCase();
+  const nom=document.getElementById('mcc-nom').value.trim();
+  const areaId=parseInt(document.getElementById('mcc-area').value);
+  if(!cod||!nom){alert('Completa código y nombre.');return;}
+  const eid=parseInt(document.getElementById('modal-cc').dataset.eid||'0');
+  if(!eid&&centrosCosto.find(c=>c.cod===cod)){alert('El código ya existe.');return;}
+  if(eid){const cc=centrosCosto.find(c=>c.id===eid);if(cc){cc.cod=cod;cc.nom=nom;cc.areaId=areaId;}}
+  else centrosCosto.push({id:sigIdCC++,cod,nom,areaId,activo:true});
+  document.getElementById('modal-cc').classList.add('hidden');
+  rCentros(); toast('Centro de costo guardado');
+}
+function toggleCC(id){
+  const cc=centrosCosto.find(c=>c.id===id); if(!cc)return;
+  cc.activo=!cc.activo; rCentros(); toast(cc.activo?'Centro activado':'Centro desactivado');
+}
+
 // ============= ÁREAS =============
 function rAreas(){
   document.getElementById('tbody-areas').innerHTML=areas.map((a,i)=>{
@@ -1586,25 +1687,52 @@ function selTipo(tipCod){
   document.getElementById('ing-tipo-titulo').textContent=t.ico+' '+t.nombre;
   document.getElementById('ing-tipo-sub').textContent=t.desc+' — Período '+pa.anio;
   const ents=getEntsVisibles(tipCod);
-  document.getElementById('ing-ent-grid').innerHTML=ents.map(e=>{
-    const eid=e.id, est=getEst(pa.id,tipCod,eid), tot=totalEnt(pa.id,tipCod,eid);
-    const [bc,bl]=bEst(est);
-    const sub=t.ent==='proyecto'?(areas.find(a=>a.id===e.areaId)||{nom:'—'}).nom:e.res;
-    const nParts=getPartidasEnt(tipCod,eid).length;
-    return `<div class="ent-card" onclick="selEnt(${eid})">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div><div style="font-size:13px;font-weight:800">${e.nom||e.nombre}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${sub}</div></div>
-        <span class="badge ${bc}">${bl}</span>
-      </div>
-      <div style="background:var(--bg);border-radius:5px;padding:10px;text-align:center;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted)">Total ${pa.anio}</div>
-        <div style="font-size:18px;font-weight:800;color:${tot>0?'var(--blue)':'var(--muted)'}">${tot>0?fmt(tot):'—'}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${nParts} partidas asignadas</div>
-      </div>
-      <button class="btn btn-primary btn-sm" style="width:100%">${est==='sin'?'+ Aperturar':'Editar presupuesto'}</button>
-    </div>`;
-  }).join('');
+  if(t.ent==='cc'){
+    const areaIds=[...new Set(ents.map(e=>e.areaId))];
+    document.getElementById('ing-ent-grid').innerHTML=areaIds.map(aid=>{
+      const area=areas.find(a=>a.id===aid)||{nom:'—'};
+      const ccs=ents.filter(e=>e.areaId===aid);
+      const cards=ccs.map(e=>{
+        const eid=e.id, est=getEst(pa.id,tipCod,eid), tot=totalEnt(pa.id,tipCod,eid);
+        const [bc,bl]=bEst(est);
+        const nParts=getPartidasEnt(tipCod,eid).length;
+        return `<div class="ent-card" onclick="selEnt(${eid})">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div><div style="font-size:13px;font-weight:800">${e.cod} — ${e.nom}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${area.nom}</div></div>
+            <span class="badge ${bc}">${bl}</span>
+          </div>
+          <div style="background:var(--bg);border-radius:5px;padding:10px;text-align:center;margin-bottom:12px">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted)">Total ${pa.anio}</div>
+            <div style="font-size:18px;font-weight:800;color:${tot>0?'var(--blue)':'var(--muted)'}">${tot>0?fmt(tot):'—'}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${nParts} partidas asignadas</div>
+          </div>
+          <button class="btn btn-primary btn-sm" style="width:100%">${est==='sin'?'+ Aperturar':'Editar presupuesto'}</button>
+        </div>`;
+      }).join('');
+      return `<div style="grid-column:1/-1;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:8px 0 4px;border-bottom:1px solid var(--border);margin-bottom:4px">&#127970; ${area.nom}</div>${cards}`;
+    }).join('');
+  } else {
+    document.getElementById('ing-ent-grid').innerHTML=ents.map(e=>{
+      const eid=e.id, est=getEst(pa.id,tipCod,eid), tot=totalEnt(pa.id,tipCod,eid);
+      const [bc,bl]=bEst(est);
+      const sub=t.ent==='proyecto'?(areas.find(a=>a.id===e.areaId)||{nom:'—'}).nom:e.res;
+      const nParts=getPartidasEnt(tipCod,eid).length;
+      return `<div class="ent-card" onclick="selEnt(${eid})">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div><div style="font-size:13px;font-weight:800">${e.nom||e.nombre}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${sub}</div></div>
+          <span class="badge ${bc}">${bl}</span>
+        </div>
+        <div style="background:var(--bg);border-radius:5px;padding:10px;text-align:center;margin-bottom:12px">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted)">Total ${pa.anio}</div>
+          <div style="font-size:18px;font-weight:800;color:${tot>0?'var(--blue)':'var(--muted)'}">${tot>0?fmt(tot):'—'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${nParts} partidas asignadas</div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:100%">${est==='sin'?'+ Aperturar':'Editar presupuesto'}</button>
+      </div>`;
+    }).join('');
+  }
 }
 function backToTipos(){
   document.getElementById('v-ing-tipo').classList.remove('hidden');
@@ -1617,7 +1745,10 @@ function selEnt(eid){
   const t=getTipo(st.tipoCod);
   const ent=getEnt(st.tipoCod,eid);
   const entNombre=ent.nom||ent.nombre||'';
-  const sub=t.ent==='proyecto'?(areas.find(a=>a.id===ent.areaId)||{nom:'—'}).nom:ent.res;
+  let sub='';
+  if(t.ent==='cc'){const area=getCCArea(ent);sub=(ent.cod?ent.cod+' — ':'')+((area||{}).nom||'');}
+  else if(t.ent==='proyecto')sub=(areas.find(a=>a.id===ent.areaId)||{nom:'—'}).nom;
+  else sub=ent.res||'';
   document.getElementById('g-titulo').textContent=entNombre;
   document.getElementById('g-sub').textContent=sub+' — Presupuesto '+per.anio;
   document.getElementById('t-per').textContent=per.anio+' — '+per.desc;
@@ -2058,7 +2189,11 @@ function updRepEntFilter(){
   const tc=document.getElementById('rp-tipo').value;
   const t=getTipo(tc);
   const ents=t?getEnts(tc):[];
-  document.getElementById('rp-ent').innerHTML=`<option value="">— Todas —</option>`+ents.map(e=>`<option value="${e.id}">${e.nom||e.nombre}</option>`).join('');
+  const opts=ents.map(e=>{
+    if(t&&t.ent==='cc'){const area=getCCArea(e);return `<option value="${e.id}">${e.cod} — ${e.nom} (${(area||{}).nom||''})</option>`;}
+    return `<option value="${e.id}">${e.nom||e.nombre}</option>`;
+  }).join('');
+  document.getElementById('rp-ent').innerHTML=`<option value="">— Todas —</option>`+opts;
 }
 function renderRepTab(){
   if(repTab==='resumen')renderResumen();
@@ -2290,8 +2425,8 @@ let sigIdUser = 10;
 // pvega (id:8) puede ingresar TI/Sistemas en GASTOS e INVERSION
 // rsilva (id:9) puede ingresar Facturacion en GASTOS
 let permisos = {
-  'GASTOS':    {7:[8], 1:[9]},
-  'INVERSION': {7:[8]},
+  'GASTOS':    {12:[8], 1:[9]},
+  'INVERSION': {12:[8]},
   'PROYECTO':  {}
 };
 // historial de aprobaciones (audit trail)
@@ -2312,7 +2447,10 @@ function canEdit(perId,tipoCod,entId){
   if(u.rol==='budget_manager')return true;
   if(u.rol==='dept_head'){
     const t=getTipo(tipoCod);
-    const esEnt=(t.ent==='area'&&u.areaId===entId)||(t.ent==='proyecto'&&(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId);
+    let esEnt=false;
+    if(t.ent==='cc'){const cc=centrosCosto.find(c=>c.id===entId);esEnt=cc&&cc.areaId===u.areaId;}
+    else if(t.ent==='proyecto'){esEnt=(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId;}
+    else{esEnt=u.areaId===entId;}
     return esEnt&&!['env','apr1','apr2'].includes(est);
   }
   if(u.rol==='dept_user'){
@@ -2328,7 +2466,9 @@ function canSubmit(perId,tipoCod,entId){
   if(u.rol==='budget_manager')return true;
   if(u.rol==='dept_head'){
     const t=getTipo(tipoCod);
-    return (t.ent==='area'&&u.areaId===entId)||(t.ent==='proyecto'&&(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId);
+    if(t.ent==='cc'){const cc=centrosCosto.find(c=>c.id===entId);return cc&&cc.areaId===u.areaId;}
+    if(t.ent==='proyecto')return(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId;
+    return u.areaId===entId;
   }
   if(u.rol==='dept_user'){return ((permisos[tipoCod]||{})[entId]||[]).includes(u.id);}
   return false;
@@ -2339,7 +2479,9 @@ function canApproveL1(perId,tipoCod,entId){
   if(u.rol==='budget_manager')return true;
   if(u.rol==='dept_head'){
     const t=getTipo(tipoCod);
-    return (t.ent==='area'&&u.areaId===entId)||(t.ent==='proyecto'&&(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId);
+    if(t.ent==='cc'){const cc=centrosCosto.find(c=>c.id===entId);return cc&&cc.areaId===u.areaId;}
+    if(t.ent==='proyecto')return(proyectos.find(p=>p.id===entId)||{}).areaId===u.areaId;
+    return u.areaId===entId;
   }
   return false;
 }
@@ -2679,7 +2821,7 @@ function actualizarNav(){
   const isJF=u.rol==='dept_head';
   const isUA=u.rol==='dept_user';
   // Admin items: solo BM
-  ['periodos','tipos','partidas','areas','proyectos'].forEach(id=>{
+  ['periodos','tipos','partidas','areas','proyectos','centros'].forEach(id=>{
     const el=document.getElementById('nav-'+id);
     if(el)el.style.display=isBM?'':'none';
   });
