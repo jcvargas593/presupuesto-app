@@ -2183,15 +2183,20 @@ function setRepTab(t){
   renderRepTab();
 }
 function rReportes(){
-  // poblar filtros
   const selPer=document.getElementById('rp-per');
   const selTipo=document.getElementById('rp-tipo');
-  const selEnt=document.getElementById('rp-ent');
+  // guardar selección actual antes de repoblar
+  const curPer=selPer.value;
+  const curTipo=selTipo.value;
   if(periodos.length){
     selPer.innerHTML=periodos.map(p=>`<option value="${p.id}">${p.anio} — ${p.desc}</option>`).join('');
-    if(!selPer.value)selPer.value=periodos[0].id;
+    // restaurar selección o defaultear al período abierto
+    const perAbierto=periodos.find(p=>p.est==='abierto');
+    selPer.value=curPer||(perAbierto?perAbierto.id:periodos[periodos.length-1].id);
+    if(!selPer.value)selPer.value=periodos[periodos.length-1].id;
   }
   selTipo.innerHTML=tipos.map(t=>`<option value="${t.codigo}">${t.ico} ${t.nombre}</option>`).join('');
+  if(curTipo)selTipo.value=curTipo;
   updRepEntFilter();
   renderRepTab();
 }
