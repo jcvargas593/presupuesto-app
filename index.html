@@ -167,6 +167,7 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
 .repro-mc .mc-disp{color:var(--green);font-weight:700}
 .repro-mc .mc-zero{color:var(--muted)}
 .b-rej{background:#FFEBE6;color:var(--red)}
+.b-bloq{background:#F4F5F7;color:#505F79;border:2px solid #505F79}
 .sidebar-usr{padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);margin-top:auto}
 .su-nom{font-size:13px;font-weight:700;color:#fff}
 .su-sel{width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 8px;font-size:11px;margin-top:8px;cursor:pointer}
@@ -526,10 +527,12 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
     <div class="rep-tab active" onclick="setRepTab('resumen')">&#129504; Resumen Ejecutivo</div>
     <div class="rep-tab" onclick="setRepTab('rvp')">&#128200; Real vs Presupuesto</div>
     <div class="rep-tab" onclick="setRepTab('repros')">&#8644; Reprogramaciones</div>
+    <div class="rep-tab" onclick="setRepTab('consolidado')">&#128202; Consolidado</div>
   </div>
   <div id="rep-resumen" class="rep-body active"></div>
   <div id="rep-rvp" class="rep-body"></div>
   <div id="rep-repros" class="rep-body"></div>
+  <div id="rep-consolidado" class="rep-body"></div>
 </div>
 
 </main>
@@ -1046,8 +1049,9 @@ let sigIdPart = 131;
 let areas = [
   {id:6, nom:'Financiero / Contabilidad', res:'Pedro Castro'   },
   {id:7, nom:'TI / Sistemas',             res:'Franklin Rosero'},
+  {id:8, nom:'Recursos Humanos',          res:'Jonathan Vargas'},
 ];
-let sigIdArea = 8;
+let sigIdArea = 9;
 
 let centrosCosto = [
   {id:10, cod:'FIN-001', nom:'Financiero',      areaId:6, activo:true},
@@ -1055,8 +1059,11 @@ let centrosCosto = [
   {id:12, cod:'TI-001',  nom:'Infraestructura', areaId:7, activo:true},
   {id:13, cod:'TI-002',  nom:'Desarrollo',      areaId:7, activo:true},
   {id:14, cod:'TI-003',  nom:'Soporte',         areaId:7, activo:true},
+  {id:15, cod:'RH-001',  nom:'Nómina',           areaId:8, activo:true},
+  {id:16, cod:'RH-002',  nom:'Capacitación',     areaId:8, activo:true},
+  {id:17, cod:'RH-003',  nom:'Bienestar',        areaId:8, activo:true},
 ];
-let sigIdCC = 15;
+let sigIdCC = 18;
 
 let proyectos = [
   {id:1, cod:'PRY-001', nom:'Implementacion ERP',   areaId:7, res:'Jonathan Vargas', ini:'2027-01-01', fin:'2027-12-31', est:'activo'},
@@ -1078,11 +1085,17 @@ let asignaciones = {
     12: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
     13: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
     14: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
+    15: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
+    16: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
+    17: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
   },
   'INVERSION': {
     12: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
     13: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
     14: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
+    15: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
+    16: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
+    17: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
   },
   'PROYECTO':  {}
 };
@@ -1140,6 +1153,7 @@ const bEst     = e => ({
   apr2:['b-apr','Aprobado Final'],
   rej1:['b-rej','Rechazado — Jefe'],
   rej2:['b-rej','Rechazado — Presupuesto'],
+  bloq:['b-bloq','🔒 Bloqueado'],
 })[e]||['b-sin',e];
 const getTipo  = cod => tipos.find(t=>t.codigo===cod);
 const getEnt   = (tipCod, id) => { const t=getTipo(tipCod); if(t?.ent==='cc') return centrosCosto.find(c=>c.id===id); if(t?.ent==='proyecto') return proyectos.find(p=>p.id===id); return areas.find(a=>a.id===id); };
@@ -2162,7 +2176,7 @@ let repTab='resumen';
 function setRepTab(t){
   repTab=t;
   document.querySelectorAll('.rep-tab').forEach((el,i)=>{
-    el.classList.toggle('active',['resumen','rvp','repros'][i]===t);
+    el.classList.toggle('active',['resumen','rvp','repros','consolidado'][i]===t);
   });
   document.querySelectorAll('.rep-body').forEach(el=>el.classList.remove('active'));
   document.getElementById('rep-'+t).classList.add('active');
@@ -2194,6 +2208,7 @@ function updRepEntFilter(){
 function renderRepTab(){
   if(repTab==='resumen')renderResumen();
   else if(repTab==='rvp')renderRvP();
+  else if(repTab==='consolidado')renderConsolidado();
   else renderRepros();
 }
 function getRepCtx(){
@@ -2431,9 +2446,10 @@ function getCurUser(){return usuarios.find(u=>u.id===sesion.userId)||null;}
 // ============= FUNCIONES DE PERMISO =============
 function canEdit(perId,tipoCod,entId){
   const est=getEst(perId,tipoCod,entId);
-  if(est==='apr2')return false;
+  if(est==='bloq')return false;
   const u=getCurUser(); if(!u)return false;
   if(u.rol==='budget_manager')return true;
+  if(est==='apr2')return false;
   if(u.rol==='dept_head'){
     const t=getTipo(tipoCod);
     let esEnt=false;
@@ -2478,6 +2494,20 @@ function canApproveL2(perId,tipoCod,entId){
   return getEst(perId,tipoCod,entId)==='apr1'&&(getCurUser()||{}).rol==='budget_manager';
 }
 
+function canBloquear(perId,tipoCod,entId){
+  return (getCurUser()||{}).rol==='budget_manager';
+}
+function bloquearPpto(perId,tipoCod,entId){
+  const est=getEst(perId,tipoCod,entId);
+  const msg=est==='bloq'?'Desbloquear este presupuesto?':'Bloquear este presupuesto? Nadie podrá modificarlo hasta desbloquearlo.';
+  if(!confirm(msg))return;
+  const nuevoEst=est==='bloq'?'apr2':'bloq';
+  setEst(perId,tipoCod,entId,nuevoEst);
+  logApro(perId,tipoCod,entId,nuevoEst,'');
+  toast(nuevoEst==='bloq'?'Presupuesto bloqueado':'Presupuesto desbloqueado');
+  renderApprovalBar();
+  renderGrid();
+}
 function logApro(perId,tipoCod,entId,accion,comment){
   const u=getCurUser();
   histApro.push({id:sigIdHist++,fecha:new Date().toISOString().split('T')[0],
@@ -2519,6 +2549,11 @@ function renderApprovalBar(){
     bar.innerHTML=`<span class="apro-ico">&#9989;</span>
       <div class="apro-txt"><strong>Presupuesto aprobado — Aprobación final completada</strong>
       <span class="apro-sub">No se pueden realizar modificaciones.</span></div>`;
+  } else if(est==='bloq'){
+    bar.classList.add('apro-rej'); bar.classList.remove('hidden');
+    bar.innerHTML=`<span class="apro-ico">&#128274;</span>
+      <div class="apro-txt"><strong>Presupuesto bloqueado por el Jefe de Presupuesto</strong>
+      <span class="apro-sub">Nadie puede modificarlo hasta que sea desbloqueado.</span></div>`;
   } else if((est==='rej1'||est==='rej2')&&rej){
     bar.classList.add('apro-rej'); bar.classList.remove('hidden');
     const nivel=est==='rej1'?'Jefe de Departamento':'Jefe de Presupuesto';
@@ -2527,6 +2562,16 @@ function renderApprovalBar(){
       <span class="apro-sub">Motivo: ${rej.comment}</span></div>`;
   } else {
     bar.classList.add('hidden');
+  }
+  if(canBloquear(st.perId,st.tipoCod,st.entId)){
+    const est2=getEst(st.perId,st.tipoCod,st.entId);
+    const bloqBtn=document.createElement('button');
+    bloqBtn.className='btn btn-sm '+(est2==='bloq'?'btn-success':'btn-ghost');
+    bloqBtn.style.marginLeft='8px';
+    bloqBtn.textContent=est2==='bloq'?'🔓 Desbloquear':'🔒 Bloquear';
+    bloqBtn.onclick=()=>bloquearPpto(st.perId,st.tipoCod,st.entId);
+    bar.classList.remove('hidden');
+    bar.appendChild(bloqBtn);
   }
 }
 
@@ -3026,6 +3071,79 @@ function renderComparacion(){
         <td style="text-align:right;padding:8px 10px;font-weight:700" class="${totCls}">${totPct>=0?'+':''}${totPct}%</td>
       </tr></tfoot>
     </table></div>`;
+}
+function renderConsolidado(){
+  const el=document.getElementById('rep-consolidado'); if(!el)return;
+  const perId=parseInt(document.getElementById('rp-per').value)||0;
+  const per=periodos.find(p=>p.id===perId);
+  if(!per){el.innerHTML='<div class="warn-box">Selecciona un período.</div>';return;}
+  const tiposCC=tipos.filter(t=>t.ent==='cc');
+  let grandTotPpto=0, grandTotReal=0;
+  const deptRows=areas.map(area=>{
+    const ccsDept=centrosCosto.filter(c=>c.areaId===area.id&&c.activo);
+    if(!ccsDept.length)return null;
+    let deptPpto=0, deptReal=0;
+    const ccRowsHTML=tiposCC.map(tipo=>{
+      const ccTipoRows=ccsDept.map(cc=>{
+        const tot=totalEnt(perId,tipo.codigo,cc.id);
+        const real=totalRealEnt(perId,tipo.codigo,cc.id);
+        const est=getEst(perId,tipo.codigo,cc.id);
+        const [bc,bl]=bEst(est);
+        const pct=tot>0?Math.round(real/tot*100):0;
+        const varCls=real>tot?'var-pos':real<tot?'var-neg':'var-neu';
+        deptPpto+=tot; deptReal+=real;
+        if(tot===0&&real===0)return '';
+        return `<tr>
+          <td style="padding-left:32px;font-size:12px;color:var(--muted)">${cc.cod}</td>
+          <td style="font-size:12px">${cc.nom}</td>
+          <td style="font-size:11px"><span class="badge ${bc}">${bl}</span></td>
+          <td style="text-align:right;font-size:12px">${fmt(tot)}</td>
+          <td style="text-align:right;font-size:12px">${real>0?fmt(real):'—'}</td>
+          <td style="text-align:right;font-size:12px" class="${varCls}">${tot>0?pct+'%':'—'}</td>
+        </tr>`;
+      }).join('');
+      if(!ccTipoRows.replace(/<tr>\s*<\/tr>/g,'').trim())return '';
+      return `<tr style="background:#F4F5F7">
+          <td colspan="6" style="padding:6px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:${tipo.color}">${tipo.ico} ${tipo.nombre}</td>
+        </tr>${ccTipoRows}`;
+    }).join('');
+    grandTotPpto+=deptPpto; grandTotReal+=deptReal;
+    const dPct=deptPpto>0?Math.round(deptReal/deptPpto*100):0;
+    return `<div class="tw" style="margin-bottom:16px">
+      <div class="tbar" style="background:#EDF2FF">
+        <h3 style="color:var(--blue)">&#127970; ${area.nom}</h3>
+        <div style="display:flex;gap:16px;font-size:13px">
+          <span>Presupuesto: <strong>${fmt(deptPpto)}</strong></span>
+          <span>Real: <strong>${deptReal>0?fmt(deptReal):'—'}</strong></span>
+          <span>Ejecución: <strong>${deptPpto>0?dPct+'%':'—'}</strong></span>
+        </div>
+      </div>
+      <table class="dt">
+        <thead><tr>
+          <th>Código</th><th>Centro de Costo</th><th>Estado</th>
+          <th style="text-align:right">Presupuesto</th>
+          <th style="text-align:right">Real</th>
+          <th style="text-align:right">% Ejec.</th>
+        </tr></thead>
+        <tbody>${ccRowsHTML||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Sin presupuesto registrado</td></tr>'}</tbody>
+        <tfoot><tr>
+          <td colspan="3" style="font-weight:800;font-size:12px">TOTAL ${area.nom.toUpperCase()}</td>
+          <td style="text-align:right;font-weight:800">${fmt(deptPpto)}</td>
+          <td style="text-align:right;font-weight:800">${deptReal>0?fmt(deptReal):'—'}</td>
+          <td style="text-align:right;font-weight:800">${deptPpto>0?dPct+'%':'—'}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  }).filter(Boolean).join('');
+  const gPct=grandTotPpto>0?Math.round(grandTotReal/grandTotPpto*100):0;
+  el.innerHTML=`
+    <div class="cards-row" style="margin-bottom:20px">
+      <div class="scard"><div class="lbl">Total Presupuestado</div><div class="val" style="color:var(--blue)">${fmt(grandTotPpto)}</div><div class="hnt">Todos los departamentos</div></div>
+      <div class="scard"><div class="lbl">Total Ejecutado</div><div class="val" style="color:var(--green)">${fmt(grandTotReal)}</div><div class="hnt">Reales registrados</div></div>
+      <div class="scard"><div class="lbl">% Ejecución Global</div><div class="val" style="color:${gPct>100?'var(--red)':'var(--text)'}">${gPct}%</div><div class="hnt">Real / Presupuesto</div></div>
+      <div class="scard"><div class="lbl">Departamentos</div><div class="val">${areas.length}</div><div class="hnt">${centrosCosto.filter(c=>c.activo).length} centros de costo</div></div>
+    </div>
+    ${deptRows||'<div class="warn-box">Sin datos de presupuesto para este período.</div>'}`;
 }
 function exportComparacion(){
   const v1id=document.getElementById('cmp-v1').value;
