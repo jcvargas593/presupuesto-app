@@ -1044,31 +1044,17 @@ let partidas = [
 let sigIdPart = 131;
 
 let areas = [
-  {id:1, nom:'Facturacion / Cajas',       res:'Maria Lopez'    },
-  {id:2, nom:'Agendamiento',              res:'Carlos Perez'   },
-  {id:3, nom:'Historia Clinica',          res:'Ana Torres'     },
-  {id:4, nom:'Laboratorio',               res:'Luis Mora'      },
-  {id:5, nom:'Comercial / Convenios',     res:'Sofia Ruiz'     },
   {id:6, nom:'Financiero / Contabilidad', res:'Pedro Castro'   },
-  {id:7, nom:'TI / Sistemas',             res:'Jonathan Vargas'},
+  {id:7, nom:'TI / Sistemas',             res:'Franklin Rosero'},
 ];
 let sigIdArea = 8;
 
 let centrosCosto = [
-  {id:1,  cod:'FAC-001', nom:'Facturación Ambulatoria',  areaId:1, activo:true},
-  {id:2,  cod:'FAC-002', nom:'Facturación Hospitalaria', areaId:1, activo:true},
-  {id:3,  cod:'AGE-001', nom:'Call Center',              areaId:2, activo:true},
-  {id:4,  cod:'AGE-002', nom:'Agendamiento Digital',     areaId:2, activo:true},
-  {id:5,  cod:'HC-001',  nom:'Historia Clínica',         areaId:3, activo:true},
-  {id:6,  cod:'LAB-001', nom:'Bioquímica',               areaId:4, activo:true},
-  {id:7,  cod:'LAB-002', nom:'Microbiología',            areaId:4, activo:true},
-  {id:8,  cod:'COM-001', nom:'Comercial',                areaId:5, activo:true},
-  {id:9,  cod:'COM-002', nom:'Convenios',                areaId:5, activo:true},
-  {id:10, cod:'FIN-001', nom:'Financiero',               areaId:6, activo:true},
-  {id:11, cod:'FIN-002', nom:'Contabilidad',             areaId:6, activo:true},
-  {id:12, cod:'TI-001',  nom:'Infraestructura',          areaId:7, activo:true},
-  {id:13, cod:'TI-002',  nom:'Desarrollo',               areaId:7, activo:true},
-  {id:14, cod:'TI-003',  nom:'Soporte',                  areaId:7, activo:true},
+  {id:10, cod:'FIN-001', nom:'Financiero',      areaId:6, activo:true},
+  {id:11, cod:'FIN-002', nom:'Contabilidad',    areaId:6, activo:true},
+  {id:12, cod:'TI-001',  nom:'Infraestructura', areaId:7, activo:true},
+  {id:13, cod:'TI-002',  nom:'Desarrollo',      areaId:7, activo:true},
+  {id:14, cod:'TI-003',  nom:'Soporte',         areaId:7, activo:true},
 ];
 let sigIdCC = 15;
 
@@ -2419,14 +2405,7 @@ const ROLES_CHIP = {budget_manager:'rol-bm', dept_head:'rol-jf', dept_user:'rol-
 
 let usuarios = [
   {id:1,  nom:'Jonathan Vargas', user:'jvargas',   pass:'1234', rol:'budget_manager', email:'jonathan.vargas@veris.com.ec'},
-  {id:2,  nom:'Maria Lopez',     user:'mlopez',    pass:'1234', rol:'dept_head',      areaId:1, email:'mlopez@veris.com.ec'},
-  {id:3,  nom:'Carlos Perez',    user:'cperez',    pass:'1234', rol:'dept_head',      areaId:2},
-  {id:4,  nom:'Ana Torres',      user:'atorres',   pass:'1234', rol:'dept_head',      areaId:3},
-  {id:5,  nom:'Luis Mora',       user:'lmora',     pass:'1234', rol:'dept_head',      areaId:4},
-  {id:6,  nom:'Sofia Ruiz',      user:'sruiz',     pass:'1234', rol:'dept_head',      areaId:5},
   {id:7,  nom:'Pedro Castro',    user:'pcastro',   pass:'1234', rol:'dept_head',      areaId:6},
-  {id:8,  nom:'Patricia Vega',   user:'pvega',     pass:'1234', rol:'dept_user'},
-  {id:9,  nom:'Roberto Silva',   user:'rsilva',    pass:'1234', rol:'dept_user'},
   {id:10, nom:'Franklin Rosero', user:'frosero',   pass:'1234', rol:'dept_head',      areaId:7},
   {id:11, nom:'David Carvajal',  user:'dcarvajal', pass:'1234', rol:'dept_user'},
 ];
@@ -2434,9 +2413,8 @@ let sigIdUser = 12;
 
 // permisos de ingreso: permisos[tipoCod][entId] = [userId, ...]
 // dcarvajal (id:11) puede ingresar los 3 CCs de TI en GASTOS e INVERSION
-// rsilva (id:9) puede ingresar Facturacion en GASTOS
 let permisos = {
-  'GASTOS':    {12:[11], 13:[11], 14:[11], 1:[9]},
+  'GASTOS':    {12:[11], 13:[11], 14:[11]},
   'INVERSION': {12:[11], 13:[11], 14:[11]},
   'PROYECTO':  {}
 };
