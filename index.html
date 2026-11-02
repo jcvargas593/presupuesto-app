@@ -2523,6 +2523,8 @@ function canSubmit(perId,tipoCod,entId){
   return false;
 }
 function canApproveL1(perId,tipoCod,entId){
+  const per=periodos.find(p=>p.id===perId);
+  if(per&&per.est==='congelado')return false;
   if(getEst(perId,tipoCod,entId)!=='env')return false;
   const u=getCurUser(); if(!u)return false;
   if(u.rol==='budget_manager')return true;
@@ -2535,6 +2537,8 @@ function canApproveL1(perId,tipoCod,entId){
   return false;
 }
 function canApproveL2(perId,tipoCod,entId){
+  const per=periodos.find(p=>p.id===perId);
+  if(per&&per.est==='congelado')return false;
   return getEst(perId,tipoCod,entId)==='apr1'&&(getCurUser()||{}).rol==='budget_manager';
 }
 
