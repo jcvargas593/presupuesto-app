@@ -2418,32 +2418,33 @@ const ROLES_NOM = {budget_manager:'Jefe de Presupuesto', dept_head:'Jefe de Depa
 const ROLES_CHIP = {budget_manager:'rol-bm', dept_head:'rol-jf', dept_user:'rol-du'};
 
 let usuarios = [
-  {id:1, nom:'Jonathan Vargas', user:'jvargas', pass:'1234', rol:'budget_manager', email:'jonathan.vargas@veris.com.ec'},
-  {id:2, nom:'Maria Lopez',     user:'mlopez',  pass:'1234', rol:'dept_head',      areaId:1, email:'mlopez@veris.com.ec'},
-  {id:3, nom:'Carlos Perez',    user:'cperez',  pass:'1234', rol:'dept_head',      areaId:2},
-  {id:4, nom:'Ana Torres',      user:'atorres', pass:'1234', rol:'dept_head',      areaId:3},
-  {id:5, nom:'Luis Mora',       user:'lmora',   pass:'1234', rol:'dept_head',      areaId:4},
-  {id:6, nom:'Sofia Ruiz',      user:'sruiz',   pass:'1234', rol:'dept_head',      areaId:5},
-  {id:7, nom:'Pedro Castro',    user:'pcastro', pass:'1234', rol:'dept_head',      areaId:6},
-  {id:8, nom:'Patricia Vega',   user:'pvega',   pass:'1234', rol:'dept_user'},
-  {id:9, nom:'Roberto Silva',   user:'rsilva',  pass:'1234', rol:'dept_user'},
+  {id:1,  nom:'Jonathan Vargas', user:'jvargas',   pass:'1234', rol:'budget_manager', email:'jonathan.vargas@veris.com.ec'},
+  {id:2,  nom:'Maria Lopez',     user:'mlopez',    pass:'1234', rol:'dept_head',      areaId:1, email:'mlopez@veris.com.ec'},
+  {id:3,  nom:'Carlos Perez',    user:'cperez',    pass:'1234', rol:'dept_head',      areaId:2},
+  {id:4,  nom:'Ana Torres',      user:'atorres',   pass:'1234', rol:'dept_head',      areaId:3},
+  {id:5,  nom:'Luis Mora',       user:'lmora',     pass:'1234', rol:'dept_head',      areaId:4},
+  {id:6,  nom:'Sofia Ruiz',      user:'sruiz',     pass:'1234', rol:'dept_head',      areaId:5},
+  {id:7,  nom:'Pedro Castro',    user:'pcastro',   pass:'1234', rol:'dept_head',      areaId:6},
+  {id:8,  nom:'Patricia Vega',   user:'pvega',     pass:'1234', rol:'dept_user'},
+  {id:9,  nom:'Roberto Silva',   user:'rsilva',    pass:'1234', rol:'dept_user'},
+  {id:10, nom:'Franklin Rosero', user:'frosero',   pass:'1234', rol:'dept_head',      areaId:7},
+  {id:11, nom:'David Carvajal',  user:'dcarvajal', pass:'1234', rol:'dept_user'},
 ];
-let sigIdUser = 10;
+let sigIdUser = 12;
 
 // permisos de ingreso: permisos[tipoCod][entId] = [userId, ...]
-// permisos[tipoCod][entId] = [userId, ...]
-// pvega (id:8) puede ingresar TI/Sistemas en GASTOS e INVERSION
+// dcarvajal (id:11) puede ingresar los 3 CCs de TI en GASTOS e INVERSION
 // rsilva (id:9) puede ingresar Facturacion en GASTOS
 let permisos = {
-  'GASTOS':    {12:[8], 1:[9]},
-  'INVERSION': {12:[8]},
+  'GASTOS':    {12:[11], 13:[11], 14:[11], 1:[9]},
+  'INVERSION': {12:[11], 13:[11], 14:[11]},
   'PROYECTO':  {}
 };
 // historial de aprobaciones (audit trail)
 let histApro = [];
 let sigIdHist = 1;
-// sesión activa — null hasta que el usuario haga login
-let sesion = {userId:null};
+// sesión activa — sin login, el usuario selecciona desde el sidebar
+let sesion = {userId:1};
 // contexto de rechazo pendiente
 let rejCtx = {nivel:0};
 
@@ -2823,7 +2824,16 @@ function renderSidebarUser(){
   const rolNom=ROLES_NOM[u.rol]||u.rol;
   box.innerHTML=`<div class="su-nom">${u.nom}</div>
     <span class="rol-chip ${chip}">${rolNom}</span>
-    <button onclick="doLogout()" style="width:100%;margin-top:10px;padding:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">&#x23CF; Cerrar sesión</button>`;
+    <select class="su-sel" onchange="cambiarUsuario(this.value)">
+      ${usuarios.map(uu=>`<option value="${uu.id}" ${uu.id===sesion.userId?'selected':''}>${uu.nom}</option>`).join('')}
+    </select>`;
+}
+function cambiarUsuario(uid){
+  sesion.userId=parseInt(uid);
+  renderSidebarUser();
+  actualizarNav();
+  nav('dash');
+  toast('Usuario: '+getCurUser().nom);
 }
 function actualizarNav(){
   const u=getCurUser(); if(!u)return;
@@ -3060,8 +3070,10 @@ function exportComparacion(){
 }
 
 // ============= INIT =============
-// La app arranca mostrando solo el login.
-// El dashboard se carga después de doLogin().
+document.getElementById('login-screen').classList.add('hidden');
+renderSidebarUser();
+actualizarNav();
+nav('dash');
 </script>
 </body>
 </html>
