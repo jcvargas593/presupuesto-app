@@ -1088,8 +1088,16 @@ let sigIdPer = 3;
 // asignaciones[tipoCod][entId] = [partidaId, ...]
 // TI/Sistemas (area 7) recibe el catálogo completo como punto de partida.
 let asignaciones = {
-  'GASTOS':    {12: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id)},
-  'INVERSION': {12: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id)},
+  'GASTOS':    {
+    12: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
+    13: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
+    14: partidas.filter(p=>p.ctaId>=1&&p.ctaId<=10).map(p=>p.id),
+  },
+  'INVERSION': {
+    12: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
+    13: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
+    14: partidas.filter(p=>p.ctaId===11||p.ctaId===12).map(p=>p.id),
+  },
   'PROYECTO':  {}
 };
 
