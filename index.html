@@ -168,6 +168,9 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
 .repro-mc .mc-zero{color:var(--muted)}
 .b-rej{background:#FFEBE6;color:var(--red)}
 .b-bloq{background:#F4F5F7;color:#505F79;border:2px solid #505F79}
+.b-froze{background:#FFF0B3;color:#974F0C;border:2px solid #FFAB00}
+#banner-congelado{display:none;background:#FFAB00;color:#172B4D;padding:10px 24px;font-size:13px;font-weight:700;text-align:center;position:sticky;top:0;z-index:50;border-bottom:2px solid #FF8B00}
+#banner-congelado.show{display:block}
 .sidebar-usr{padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);margin-top:auto}
 .su-nom{font-size:13px;font-weight:700;color:#fff}
 .su-sel{width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 8px;font-size:11px;margin-top:8px;cursor:pointer}
@@ -288,6 +291,7 @@ table.pg tr.gst td.cd{background:#F0F8FF!important}
 </aside>
 
 <main class="main">
+<div id="banner-congelado">&#10052; PERÍODO CONGELADO — El Jefe de Presupuesto ha congelado el período. No se permiten modificaciones hasta que sea descongelado.</div>
 
 <!-- DASHBOARD -->
 <div id="v-dash">
@@ -1129,7 +1133,8 @@ const fmt   = n => '$'+(n||0).toLocaleString('es-EC',{minimumFractionDigits:0,ma
 const fmtN  = n =>    (n||0).toLocaleString('es-EC',{minimumFractionDigits:0,maximumFractionDigits:0});
 const toast = (m,d=2800) => { const e=document.getElementById('toast'); e.textContent=m; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),d); };
 const cm    = id => document.getElementById(id).classList.add('hidden');
-const pact  = ()  => periodos.find(p=>p.est==='abierto')||null;
+const pact  = ()  => periodos.find(p=>p.est==='abierto'||p.est==='congelado')||null;
+const pCongelado = () => { const p=pact(); return p&&p.est==='congelado'; };
 const getPp = (p,t,e,pid,m) => ((((pptos[p]||{})[t]||{})[e]||{})[pid]||[])[m]||0;
 const setPp = (p,t,e,pid,m,v) => {
   if(!pptos[p])pptos[p]={};
@@ -1202,6 +1207,7 @@ function rDash(){
   const pa=pact();
   const db=document.getElementById('dash-body');
   if(!pa){ db.innerHTML='<div class="warn-box">No hay ningún período abierto. Ve a <strong>Apertura General</strong>.</div>'; return; }
+  if(pa.est==='congelado'){db.innerHTML=`<div class="warn-box" style="font-size:14px">&#10052; <strong>Período ${pa.anio} CONGELADO</strong> — El Jefe de Presupuesto ha suspendido temporalmente todas las modificaciones. Ve a <strong>Apertura General</strong> para descongelar.</div>`;return;}
   const tiposAct=tipos.filter(t=>pa.tipos.includes(t.codigo));
   let rows='';
   tiposAct.forEach(t=>{
@@ -1236,22 +1242,31 @@ function rDash(){
 function rPeriodos(){
   const ct=document.getElementById('per-list');
   if(!periodos.length){ct.innerHTML='<div class="warn-box">Sin períodos.</div>';return;}
+  const isBM=(getCurUser()||{}).rol==='budget_manager';
   ct.innerHTML=periodos.map(p=>{
-    const open=p.est==='abierto';
+    const open=p.est==='abierto', froze=p.est==='congelado', closed=p.est==='cerrado';
+    const cardCls=froze?'pcerr':open?'popen':'pcerr';
+    const badgeCls=open?'b-open':froze?'b-froze':'b-closed';
+    const badgeTxt=open?'ABIERTO':froze?'❄ CONGELADO':'CERRADO';
     const tiposP=tipos.filter(t=>p.tipos.includes(t.codigo));
     const totEnv=tiposP.reduce((s,t)=>{const ents=getEnts(t.codigo);return s+ents.filter(e=>['env','apr'].includes(getEst(p.id,t.codigo,e.id))).length;},0);
     const totEnt=tiposP.reduce((s,t)=>s+getEnts(t.codigo).length,0);
     const pct=totEnt?Math.round(totEnv/totEnt*100):0;
-    return `<div class="pcard ${open?'popen':'pcerr'}">
+    const btns=isBM?`
+      ${(open||froze)?`<button class="btn btn-xs ${froze?'btn-success':'btn-ghost'}" style="${froze?'':'background:#FFF7D6;color:#974F0C;border-color:#FFAB00'}" onclick="congelarPer(${p.id})">${froze?'❄ Descongelar':'❄ Congelar'}</button>`:''}
+      <button class="btn btn-xs ${open?'btn-danger':froze?'btn-danger':'btn-success'}" onclick="togglePer(${p.id})">${(open||froze)?'Cerrar':'Abrir'}</button>
+      ${closed?`<button class="btn btn-xs btn-ghost" onclick="delPer(${p.id})">Eliminar</button>`:''}
+    `:'';
+    return `<div class="pcard ${cardCls}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div><div style="font-size:17px;font-weight:800">${p.anio} — ${p.desc}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">Inicio: ${p.ini||'—'} &nbsp;|&nbsp; Límite: ${p.lim||'—'}</div></div>
-        <div style="display:flex;gap:7px;align-items:center">
-          <span class="badge ${open?'b-open':'b-closed'}">${open?'ABIERTO':'CERRADO'}</span>
-          <button class="btn btn-xs ${open?'btn-danger':'btn-success'}" onclick="togglePer(${p.id})">${open?'Cerrar':'Abrir'}</button>
-          ${!open?`<button class="btn btn-xs btn-ghost" onclick="delPer(${p.id})">Eliminar</button>`:''}
+        <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+          <span class="badge ${badgeCls}">${badgeTxt}</span>
+          ${btns}
         </div>
       </div>
+      ${froze?'<div class="warn-box" style="margin-bottom:12px">&#10052; Período congelado — nadie puede ingresar ni modificar presupuesto hasta que se descongele.</div>':''}
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
         ${tiposP.map(t=>`<span style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${t.ico} ${t.nombre}</span>`).join('')}
       </div>
@@ -1282,11 +1297,31 @@ function guardarPer(){
     lim:document.getElementById('mp-lim').value,obs:document.getElementById('mp-obs').value.trim(),tipos:selTipos});
   cm('modal-per'); rPeriodos(); toast('Período '+anio+' creado');
 }
+function congelarPer(id){
+  const p=periodos.find(x=>x.id===id); if(!p)return;
+  if(p.est==='congelado'){
+    if(!confirm('Descongelar el período '+p.anio+'? Se habilitarán nuevamente las modificaciones.'))return;
+    p.est='abierto'; toast('Período '+p.anio+' descongelado — modificaciones habilitadas');
+  } else {
+    if(!confirm('❄ Congelar el período '+p.anio+'? Nadie podrá ingresar ni modificar presupuesto hasta descongelarlo.'))return;
+    p.est='congelado'; toast('Período '+p.anio+' CONGELADO');
+  }
+  updBannerCongelado(); rPeriodos(); rDash();
+}
 function togglePer(id){
   const p=periodos.find(x=>x.id===id); if(!p)return;
-  if(p.est==='abierto'){if(!confirm('Cerrar el período '+p.anio+'?'))return; p.est='cerrado'; toast('Período cerrado');}
-  else{periodos.filter(x=>x.est==='abierto').forEach(x=>x.est='cerrado'); p.est='abierto'; toast('Período '+p.anio+' abierto');}
-  rPeriodos();
+  if(p.est==='abierto'||p.est==='congelado'){
+    if(!confirm('Cerrar el período '+p.anio+'? Esta acción es definitiva.'))return;
+    p.est='cerrado'; toast('Período cerrado');
+  } else {
+    periodos.filter(x=>x.est==='abierto'||x.est==='congelado').forEach(x=>x.est='cerrado');
+    p.est='abierto'; toast('Período '+p.anio+' abierto');
+  }
+  updBannerCongelado(); rPeriodos();
+}
+function updBannerCongelado(){
+  const b=document.getElementById('banner-congelado'); if(!b)return;
+  b.classList.toggle('show', pCongelado());
 }
 function delPer(id){
   if(!confirm('Eliminar? Se perderán todos los datos.'))return;
@@ -2450,6 +2485,8 @@ function getCurUser(){return usuarios.find(u=>u.id===sesion.userId)||null;}
 
 // ============= FUNCIONES DE PERMISO =============
 function canEdit(perId,tipoCod,entId){
+  const per=periodos.find(p=>p.id===perId);
+  if(per&&per.est==='congelado')return false;
   const est=getEst(perId,tipoCod,entId);
   if(est==='bloq')return false;
   const u=getCurUser(); if(!u)return false;
@@ -2470,6 +2507,8 @@ function canEdit(perId,tipoCod,entId){
   return false;
 }
 function canSubmit(perId,tipoCod,entId){
+  const per=periodos.find(p=>p.id===perId);
+  if(per&&per.est==='congelado')return false;
   const est=getEst(perId,tipoCod,entId);
   if(!['sin','bor','rej1','rej2'].includes(est))return false;
   const u=getCurUser(); if(!u)return false;
@@ -3174,6 +3213,7 @@ function exportComparacion(){
 document.getElementById('login-screen').classList.add('hidden');
 renderSidebarUser();
 actualizarNav();
+updBannerCongelado();
 nav('dash');
 </script>
 </body>
